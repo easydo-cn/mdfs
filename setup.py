@@ -6,7 +6,7 @@ here = os.path.abspath(os.path.dirname(__file__))
 README = open(os.path.join(here, 'README.md')).read()
 
 setup (
-    name='sfs',
+    name='edo_sfs',
     version='0.1',
     author = "panjy",
     author_email = "panjunyong@gmail.com",
