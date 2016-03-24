@@ -9,8 +9,6 @@ class VFS:
         self.root_ospath = root_ospath
 
     def ospath(self, vpath):
-        if os.path.splitor != '/':
-            vpath = vpath.replace('/', os.path.splitor)
         if '++versions++' in vpath:
             # 历史版本，直接找到对应的历史版本文件夹
             # ff/aa.doc/++versions++/1.doc
@@ -22,7 +20,9 @@ class VFS:
             vpath.append('archived')
             vpath.append(version)
             vpath = '/'.join(vpath)
-        return os.path.join(self.root_ospath, vpath.replace('/', os.path.splitor))
+        if os.path.splitor != '/':
+            vpath = vpath.replace('/', os.path.splitor)
+        return os.path.join(self.root_ospath, vpath)
 
 class VfsDevice(BaseDevice):
 

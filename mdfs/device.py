@@ -31,24 +31,20 @@ class BaseDevice:
 class StorageDeviceManager:
     """ 支持缓存多设备的文件存储管理器 """
 
-    site_policy = {} # {site:[devices]}
-    mime_policy = {} # {mime:[devices]}
     devices = {}
 
-    def allowed_devices(self, site_name, mimes):
-        """ 所有许可的设备 """
+    def add(self, device, cache_device):
+        self.devices[device.name] = (device, cache_device)
 
     def get_cache_key(self, key, mime='', subpath=''):
         mime = mime.replace('/', '_')
         cache_path = self.frs.getCacheFolder(vpath, mime.replace('/', '_')), file_name)
 
-    def add(self, device, cache_device):
-        self[device.name] = device
-
     def remove(self, name, key):
         """ 删除一个文件，同时删除缓存 """
         device, cache_device = self.devices[name]
         device.remove(key)
+        # TODO 需要删除所有的缓存
         cache_device.remove(self.get_cache_key(key))
 
     def get_data(self, name, key):
