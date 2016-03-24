@@ -6,7 +6,7 @@ here = os.path.abspath(os.path.dirname(__file__))
 README = open(os.path.join(here, 'README.md')).read()
 
 setup (
-    name='edo_sfs',
+    name='mdfs',
     version='0.1',
     author = "panjy",
     author_email = "panjunyong@gmail.com",
@@ -26,7 +26,6 @@ setup (
     install_requires = [
          'setuptools',
          # tests only
-        'zopen.frs',
         ],
     zip_safe = False,
     entry_points = """
