@@ -4,7 +4,7 @@
 
 ## Features
 
-- Support multi-sites. Each site has its own storage.
+- Support multi-devices: Local Filesystem, qiniu, Ceph, swift, ali....
 - File caches: to store file generated information
 
 # 多设备的文件存储系统
@@ -30,7 +30,6 @@
 运营点存储设备管理器
 
     sdm = StorageDeviceManager()
-    sdm.load_from_etcd(operator_name='0')
     cache_device = VfsDevice(cache_path)
     
     vfs_device = VfsDevice(path)
