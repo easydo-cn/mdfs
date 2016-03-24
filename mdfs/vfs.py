@@ -7,6 +7,7 @@ from device import BaseDevice
 class VfsDevice(BaseDevice):
 
     def ospath(self, key):
+        """ 找到key在操作系统中的地址 """
         # 读取环境变量  VFS_xxx 做为环境变量
         root_ospath = os.environ['VFS_' + self.name.upper()]
         if '++versions++' in key:
