@@ -4,48 +4,42 @@ import os
 import tempfile
 from device import BaseDevice
 
-class VFS:
+class VfsDevice(BaseDevice):
 
-    def __init__(self, root_ospath):
-        self.root_ospath = root_ospath
-
-    def ospath(self, vpath):
-        if '++versions++' in vpath:
+    def ospath(self, key):
+        # 读取环境变量  VFS_xxx 做为环境变量
+        root_ospath = os.environ['VFS_' + self.name.upper()]
+        if '++versions++' in key:
             # 历史版本，直接找到对应的历史版本文件夹
             # ff/aa.doc/++versions++/1.doc
             # ff/.frs/aa.doc/archived/1.doc
-            vpath, version = vpath.split('/++versions++/')
-            vpath = vpath.split('/')
-            vpath.insert(-1, self.frs.dotfrs)
+            key, version = key.split('/++versions++/')
+            key= key.split('/')
+            key.insert(-1, self.frs.dotfrs)
             #_, ext = os.path.splitext(site_path[-1])
-            vpath.append('archived')
-            vpath.append(version)
-            vpath = '/'.join(vpath)
+            key.append('archived')
+            key.append(version)
+            key = '/'.join(key)
         if os.path.splitor != '/':
-            vpath = vpath.replace('/', os.path.splitor)
-        return os.path.join(self.root_ospath, vpath)
-
-class VfsDevice(BaseDevice):
-
-    def __init__(self, path):
-        self.vfs = VFS(path)
+            key = key.replace('/', os.path.splitor)
+        return os.path.join(root_ospath, key)
 
     def gen_key(self, prefix='', suffix=''):
         """ 生成一个未用的key """
     
     def get_data(self, key):
         """ 根据key返回文件内容，不适合大文件 """
-        path = self.vfs.ospath(key)
+        path = self.ospath(key)
         return open(path, 'rb').read()
 
     def get_stream(self, key):
         """ 返回文件的一个stream对象，可以通过iterator来逐步得到文件，适合大文件 """
-        path = self.vfs.ospath(key)
+        path = self.ospath(key)
         return open(path, 'rb')
 
     def put_data(self, key, data):
         """ 直接存储一个数据，适合小文件 """
-        ospath = self.vfs.ospath(key)
+        ospath = self.ospath(key)
         dirpath = os.path.dirname(ospath)
         if not os.path.exists(dirpath):
             os.makedirs(dirpath)
@@ -53,7 +47,7 @@ class VfsDevice(BaseDevice):
             fd.write(data)
 
     def put_stream(self, key, stream):
-        ospath = self.vfs.ospath(key)
+        ospath = self.ospath(key)
         dirpath = os.path.dirname(ospath)
         if not os.path.exists(dirpath):
             os.makedirs(dirpath)
