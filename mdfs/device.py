@@ -2,13 +2,10 @@
 
 class BaseDevice:
 
-    def __init__(self, name, title, type_, options, mimes, instances):
+    def __init__(self, name, title='', options={}):
         self.name = name
         self.title = title
-        self.type_ = type_
         self.options = options
-        self.mimes = mimes
-        self.instances = instances
     
     def gen_key(self, prefix='', suffix=''):
         """ 生成一个未用的key """
