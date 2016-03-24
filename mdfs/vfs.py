@@ -1,6 +1,7 @@
 # encoding: utf-8
 
 import os
+import tempfile
 from device import BaseDevice
 
 class VFS:

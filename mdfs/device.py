@@ -38,7 +38,7 @@ class StorageDeviceManager:
 
     def get_cache_key(self, key, mime='', subpath=''):
         mime = mime.replace('/', '_')
-        cache_path = self.frs.getCacheFolder(vpath, mime.replace('/', '_')), file_name)
+        return 'cache/' + key + '/.frs.' + mime + '/' + subpath
 
     def remove(self, name, key):
         """ 删除一个文件，同时删除缓存 """
