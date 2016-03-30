@@ -33,9 +33,25 @@ class StorageDeviceManager:
     def add(self, device, cache_device):
         self.devices[device.name] = (device, cache_device)
 
+    def get_device(self, name):
+        return self.devices[name]
+
+    def gen_key(self, name, prefix='', suffix=''):
+        """ 生成一个未用的key """
+        device, cache_device = self.devices[name]
+        return device.gen_key(prefix, suffix)
+
     def get_cache_key(self, key, mime='', subpath=''):
         mime = mime.replace('/', '_')
-        return 'cache/' + key + '/.frs.' + mime + '/' + subpath
+        return key + '/.frs.' + mime + '/' + subpath
+
+    def os_path(self, name, key):
+        device, cache_device = self.devices[name]
+        return device.os_path(key)
+
+    def cache_os_path(self, name, key):
+        device, cache_device = self.devices[name]
+        return cache_device.os_path(key)
 
     def remove(self, name, key):
         """ 删除一个文件，同时删除缓存 """
