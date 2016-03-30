@@ -76,7 +76,8 @@
 VFS: 虚拟文件系统
 
   vfs = VFS(root=path)
-  os_path = vfs.ospath(key)将key映射到实际文件系统路径
+  os_path = vfs.os_path(key)
+  将key映射到实际文件系统路径
 
 - os.path.split统一
 - 历史版本路径映射：
