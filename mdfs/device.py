@@ -1,5 +1,9 @@
 # encoding: utf-8
 
+import threading
+
+threading.local.put_files = None
+
 class BaseDevice:
 
     def __init__(self, name, title='', options={}):
@@ -48,6 +52,10 @@ class StorageDeviceManager:
     def add(self, device, cache_device):
         self.devices[device.name] = (device, cache_device)
 
+    def get_cache_device(self, name):
+        device, cache_device = self.devices[name]
+        return cache_device
+
     def gen_key(self, name, prefix='', suffix=''):
         """ 生成一个未用的key """
         device, cache_device = self.devices[name]
@@ -82,37 +90,51 @@ class StorageDeviceManager:
         device, cache_device = self.devices[name]
         return device.get_stream(key)
 
+    def start_put_thread(self):
+        """ 开始一个写入线程 """
+        threading.local.put_files = []
+
+    def abort_put_thread(self):
+        """ 废弃一个写入线程 """
+        for device, key in threading.local.put_files:
+            self.remove(device, key)
+        threading.local.put_files = None
+
+    def commit_put_thread(self):
+        """ 完结一个写入线程 """
+        threading.local.put_files = None
+
     def put_data(self, name, key, data):
         """ 存储数据 """
         device, cache_device = self.devices[name]
+        if threading.local.put_files is not None:
+            threading.local.put_files.append((name, key))
         return device.put_data(key, data)
 
-    def put_stream(self, name, key, stream):
-        """ 存储文件流 """
+    def multiput_new(self, name, size):
+        """ 开始一个多次写入会话, 返回会话ID"""
         device, cache_device = self.devices[name]
-        return device.put_stream(key, stream)
+        return device.multiput_new(size)
 
-    def get_cache_data(self, name, key, mime, subpath):
-        """ 读取缓存数据 """
+    def multiput_offset(self, name, session_id):
+        """ 会话写入位置 """
         device, cache_device = self.devices[name]
-        key = self.get_cache_key(key, mime, subpath)
-        return cache_device.get_data(key)
+        return device.multiput_offset(session_id)
 
-    def get_cache_stream(self, name, key, mime, subpath):
-        """ 读取缓存数据流 """
+    def multiput(self, name, session_id, data, offset):
+        """ 多次写入会话 """
         device, cache_device = self.devices[name]
-        key = self.get_cache_key(key, mime, subpath)
-        return cache_device.get_stream(key)
+        return device.multiput(session_id, data, offset)
 
-    def put_cache_data(self, name, key, mime, subpath, data):
-        """ 存储缓存数据 """
+    def multiput_save(self, name, session_id, key):
+        """ 保存、完结会话 """
         device, cache_device = self.devices[name]
-        key = self.get_cache_key(key, mime, subpath)
-        return cache_device.put_data(key, data)
+        if threading.local.put_files is not None:
+            threading.local.put_files.append((name, key))
+        return device.multiput_save(session_id, key)
 
-    def put_cache_stream(self, name, key, mime, subpath, stream):
-        """ 存储缓存文件流 """
+    def multiput_delete(self, name, session_id):
+        """ 删除一个写入会话 """
         device, cache_device = self.devices[name]
-        key = self.get_cache_key(key, mime, subpath)
-        return cache_device.put_stream(key, stream)
+        return device.multiput_delete(session_id)
 
