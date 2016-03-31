@@ -2,7 +2,7 @@
 
 import threading
 
-threading.local.put_files = None
+_local = threading.local()
 
 class BaseDevice:
 
@@ -92,23 +92,24 @@ class StorageDeviceManager:
 
     def start_put_thread(self):
         """ 开始一个写入线程 """
-        threading.local.put_files = []
+        if getattr(_local, 'put_files', None) is None:
+            setattr(_local, 'put_files', [])
 
     def abort_put_thread(self):
         """ 废弃一个写入线程 """
         for device, key in threading.local.put_files:
             self.remove(device, key)
-        threading.local.put_files = None
+        _local.put_files = None
 
     def commit_put_thread(self):
         """ 完结一个写入线程 """
-        threading.local.put_files = None
+        _local.put_files = None
 
     def put_data(self, name, key, data):
         """ 存储数据 """
         device, cache_device = self.devices[name]
-        if threading.local.put_files is not None:
-            threading.local.put_files.append((name, key))
+        if getattr(_local, 'put_files', None) is not None:
+            _local.put_files.append((name, key))
         return device.put_data(key, data)
 
     def multiput_new(self, name, size):
@@ -129,8 +130,8 @@ class StorageDeviceManager:
     def multiput_save(self, name, session_id, key):
         """ 保存、完结会话 """
         device, cache_device = self.devices[name]
-        if threading.local.put_files is not None:
-            threading.local.put_files.append((name, key))
+        if getattr(_local, 'put_files', None) is not None:
+            _local.put_files.append((name, key))
         return device.multiput_save(session_id, key)
 
     def multiput_delete(self, name, session_id):
