@@ -13,12 +13,27 @@ class BaseDevice:
     def put_data(self, key, data):
         """ 直接存储一个数据，适合小文件 """
 
-    def put_stream(self, key, file_obj):
-        """ 通过iterator来存储一个文件，适合大文件 """
+    def copy_data(self, from_key, to_key):
+        """ 直接存储一个数据，适合小文件 """
+
+    def multiput_new(self, size):
+        """ 开始一个多次写入会话, 返回会话ID"""
+
+    def multiput_offset(self, session_id):
+        """ 会话写入位置 """
+
+    def multiput(self, session_id, data, offset):
+        """ 多次写入会话 """
+
+    def multiput_save(self, session_id, key):
+        """ 保存、完结会话 """
+
+    def multiput_delete(self, session_id):
+        """ 删除一个写入会话 """
 
     def remove(self, key):
         """ 删除key文件 """
-    
+
     def get_data(self, key):
         """ 根据key返回文件内容，不适合大文件 """
 
@@ -32,9 +47,6 @@ class StorageDeviceManager:
 
     def add(self, device, cache_device):
         self.devices[device.name] = (device, cache_device)
-
-    def get_device(self, name):
-        return self.devices[name]
 
     def gen_key(self, name, prefix='', suffix=''):
         """ 生成一个未用的key """

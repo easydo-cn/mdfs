@@ -64,6 +64,18 @@ class VfsDevice(BaseDevice):
                 yield data
                 data = f.read(buffer_size)
 
+    def multiput_new(self, size):
+        """ 开始一个多次写入会话, 返回会话ID"""
+
+    def multiput_pos(self, session_id):
+        """ 某个文件当前上传位置 """
+
+    def multiput(self, session_id, data, offset):
+        """ 某个文件当前上传位置 """
+
+    def multiput_save(self, session_id, key):
+        """ 某个文件当前上传位置 """
+
     def put_data(self, key, data):
         """ 直接存储一个数据，适合小文件 """
         os_path = self.os_path(key)
