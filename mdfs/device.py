@@ -90,18 +90,18 @@ class StorageDeviceManager:
         device, cache_device = self.devices[name]
         return device.get_stream(key)
 
-    def start_put_thread(self):
+    def start_put_transaction(self):
         """ 开始一个写入线程 """
         if getattr(_local, 'put_files', None) is None:
             setattr(_local, 'put_files', [])
 
-    def abort_put_thread(self):
+    def abort_put_transaction(self):
         """ 废弃一个写入线程 """
         for device, key in threading.local.put_files:
             self.remove(device, key)
         _local.put_files = None
 
-    def commit_put_thread(self):
+    def commit_put_transaction(self):
         """ 完结一个写入线程 """
         _local.put_files = None
 
@@ -111,6 +111,13 @@ class StorageDeviceManager:
         if getattr(_local, 'put_files', None) is not None:
             _local.put_files.append((name, key))
         return device.put_data(key, data)
+
+    def copy_data(self, name, from_key, to_key):
+        """ 直接存储一个数据，适合小文件 """
+        device, cache_device = self.devices[name]
+        if getattr(_local, 'put_files', None) is not None:
+            _local.put_files.append((name, to_key))
+        return device.copy_data(from_key, to_key)
 
     def multiput_new(self, name, size):
         """ 开始一个多次写入会话, 返回会话ID"""
