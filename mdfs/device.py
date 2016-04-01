@@ -69,9 +69,9 @@ class StorageDeviceManager:
         device, cache_device = self.devices[name]
         return device.os_path(key)
 
-    def cache_os_path(self, name, key):
-        device, cache_device = self.devices[name]
-        return cache_device.os_path(key)
+    #def cache_os_path(self, name, key):
+    #    device, cache_device = self.devices[name]
+    #    return cache_device.os_path(key)
 
     def remove(self, name, key):
         """ 删除一个文件，同时删除缓存 """
@@ -80,15 +80,15 @@ class StorageDeviceManager:
         # TODO 需要删除所有的缓存
         cache_device.remove(self.get_cache_key(key))
 
-    def get_data(self, name, key):
+    def get_data(self, name, key, offset=0, size=-1):
         """ 读取数据 """
         device, cache_device = self.devices[name]
-        return device.get_data(key)
+        return device.get_data(key, offset, size)
 
-    def get_stream(self, name, key):
-        """ 读取数据流 """
-        device, cache_device = self.devices[name]
-        return device.get_stream(key)
+    #def get_stream(self, name, key):
+    #    """ 读取数据流 """
+    #    device, cache_device = self.devices[name]
+    #    return device.get_stream(key)
 
     def start_put_transaction(self):
         """ 开始一个写入线程 """
@@ -119,7 +119,7 @@ class StorageDeviceManager:
             _local.put_files.append((name, to_key))
         return device.copy_data(from_key, to_key)
 
-    def multiput_new(self, name, size):
+    def multiput_new(self, name, key, size):
         """ 开始一个多次写入会话, 返回会话ID"""
         device, cache_device = self.devices[name]
         return device.multiput_new(size)
@@ -134,12 +134,13 @@ class StorageDeviceManager:
         device, cache_device = self.devices[name]
         return device.multiput(session_id, data, offset)
 
-    def multiput_save(self, name, session_id, key):
+    def multiput_save(self, name, session_id):
         """ 保存、完结会话 """
         device, cache_device = self.devices[name]
+        key = device.multiput_save(session_id)
         if getattr(_local, 'put_files', None) is not None:
             _local.put_files.append((name, key))
-        return device.multiput_save(session_id, key)
+        return key
 
     def multiput_delete(self, name, session_id):
         """ 删除一个写入会话 """
