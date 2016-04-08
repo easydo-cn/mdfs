@@ -4,7 +4,7 @@ import os
 import uuid
 import shutil
 
-from mdfs.device import BaseDevice
+from .device import BaseDevice
 
 
 class VfsDevice(BaseDevice):
@@ -12,10 +12,7 @@ class VfsDevice(BaseDevice):
         """ 找到key在操作系统中的地址 """
 
         # 读取环境变量  VFS_xxx 做为环境变量
-        try:
-            root_path = os.environ['VFS_' + self.name.upper()]
-        except KeyError as e:
-            raise e
+        root_path = os.environ['VFS_' + self.name.upper()]
 
         if '++versions++' in key:
             # 历史版本，直接找到对应的历史版本文件夹
@@ -64,17 +61,54 @@ class VfsDevice(BaseDevice):
                 yield data
                 data = f.read(buffer_size)
 
-    def multiput_new(self, size):
+    @staticmethod
+    def get_key_from_session_id(session_id):
+        key, _ = os.path.split(session_id)
+        return key
+
+    def multiput_new(self, key, size):
         """ 开始一个多次写入会话, 返回会话ID"""
+        os_path = self.os_path(key)
+        self.mkdir(os_path)
+        with open(os_path, 'wb'):
+            pass
+        return os.path.join(key, str(size))
 
-    def multiput_pos(self, session_id):
+    def multiput_offset(self, session_id):
         """ 某个文件当前上传位置 """
+        key = self.get_key_from_session_id(session_id)
+        os_path = self.os_path(key)
+        return os.path.getsize(os_path)
 
-    def multiput(self, session_id, data, offset):
-        """ 某个文件当前上传位置 """
+    def multiput(self, session_id, data, offset=None):
+        """ 从offset处写入数据 """
+        key = self.get_key_from_session_id(session_id)
+        os_path = self.os_path(key)
+        if not os.path.exists(os_path):
+            self.mkdir(os_path)
+            with open(os_path, 'wb'):
+                pass
+        if offset is None:
+            with open(os_path, 'ab') as f:
+                shutil.copyfileobj(data, f)
+                return f.tell()
+        with open(os_path, 'r+b') as f:
+            f.seek(offset)
+            f.write(data)
+            return f.tell()
 
     def multiput_save(self, session_id, key):
         """ 某个文件当前上传位置 """
+        session_key = self.get_key_from_session_id(session_id)
+        src = self.os_path(session_key)
+        dst = self.os_path(key)
+        self.mkdir(dst)
+        shutil.move(src, dst)
+
+    def multiput_delete(self, session_id):
+        """ 删除一个写入会话 """
+        key = self.get_key_from_session_id(session_id)
+        self.remove(key)
 
     def put_data(self, key, data):
         """ 直接存储一个数据，适合小文件 """
@@ -93,3 +127,9 @@ class VfsDevice(BaseDevice):
     def remove(self, key):
         """ 删除key文件 """
         os.remove(self.os_path(key))
+
+    def copy_data(self, from_key, to_key):
+        src = self.os_path(from_key)
+        dst = self.os_path(to_key)
+        self.mkdir(dst)
+        shutil.copy(src, dst)
