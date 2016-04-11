@@ -15,6 +15,14 @@ class BaseDevice:
     def gen_key(self, prefix='', suffix=''):
         """ 生成一个未用的key """
 
+    def stat(self, key):
+        """ state of a key
+        {    "fsize":        5122935,
+            "hash":         "ljfockr0lOil_bZfyaI2ZY78HWoH",
+            "mimeType":     "application/octet-stream",
+            "putTime":      13603956734587420
+        }"""
+
     def put_data(self, key, data):
         """ 直接存储一个数据，适合小文件 """
 
@@ -75,6 +83,10 @@ class StorageDeviceManager:
     #def cache_os_path(self, name, key):
     #    device, cache_device = self.devices[name]
     #    return cache_device.os_path(key)
+
+    def stat(self, name, key):
+        device, cache_device = self.devices[name]
+        return device.stat(key)
 
     def remove(self, name, key):
         """ 删除一个文件，同时删除缓存 """
