@@ -25,6 +25,8 @@ class VfsDevice(BaseDevice):
             key = '/'.join(key)
         if os.sep != '/':
             key = key.replace('/', os.sep)
+        # key can't be an absolute path
+        key = key.lstrip(os.sep)
         return os.path.join(root_path, key)
 
     def gen_key(self, prefix='', suffix=''):
