@@ -4,23 +4,24 @@ import threading
 
 _local = threading.local()
 
+
 class BaseDevice:
 
     def __init__(self, name, title='', options={}):
         self.name = name
         self.title = title
         self.options = options
-    
+
     def gen_key(self, prefix='', suffix=''):
         """ 生成一个未用的key """
-    
+
     def put_data(self, key, data):
         """ 直接存储一个数据，适合小文件 """
 
     def copy_data(self, from_key, to_key):
         """ 直接存储一个数据，适合小文件 """
 
-    def multiput_new(self, size):
+    def multiput_new(self, key, size):
         """ 开始一个多次写入会话, 返回会话ID"""
 
     def multiput_offset(self, session_id):
@@ -44,10 +45,12 @@ class BaseDevice:
     def get_stream(self, key):
         """ 返回文件的一个stream对象，可以通过iterator来逐步得到文件，适合大文件 """
 
+
 class StorageDeviceManager:
     """ 支持缓存多设备的文件存储管理器 """
 
-    devices = {}
+    def __init__(self):
+        self.devices = dict()
 
     def add(self, device, cache_device):
         self.devices[device.name] = (device, cache_device)
@@ -122,14 +125,14 @@ class StorageDeviceManager:
     def multiput_new(self, name, key, size):
         """ 开始一个多次写入会话, 返回会话ID"""
         device, cache_device = self.devices[name]
-        return device.multiput_new(size)
+        return device.multiput_new(key, size)
 
     def multiput_offset(self, name, session_id):
         """ 会话写入位置 """
         device, cache_device = self.devices[name]
         return device.multiput_offset(session_id)
 
-    def multiput(self, name, session_id, data, offset):
+    def multiput(self, name, session_id, data, offset=None):
         """ 多次写入会话 """
         device, cache_device = self.devices[name]
         return device.multiput(session_id, data, offset)
@@ -146,4 +149,3 @@ class StorageDeviceManager:
         """ 删除一个写入会话 """
         device, cache_device = self.devices[name]
         return device.multiput_delete(session_id)
-
