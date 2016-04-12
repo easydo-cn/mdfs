@@ -38,7 +38,7 @@ class BaseDevice:
     def multiput(self, session_id, data, offset):
         """ 多次写入会话 """
 
-    def multiput_save(self, session_id, key):
+    def multiput_save(self, session_id):
         """ 保存、完结会话 """
 
     def multiput_delete(self, session_id):
