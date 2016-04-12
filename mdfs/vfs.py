@@ -48,7 +48,7 @@ class VfsDevice(BaseDevice):
         if not os.path.exists(dir_name):
             os.makedirs(dir_name)
 
-    def get_data(self, key):
+    def get_data(self, key, offset=0, size=-1):
         """ 根据key返回文件内容，适合小文件 """
         path = self.os_path(key)
         with open(path, 'rb') as f:
@@ -135,3 +135,11 @@ class VfsDevice(BaseDevice):
         dst = self.os_path(to_key)
         self.mkdir(dst)
         shutil.copy(src, dst)
+
+    def stat(self, key):
+        return {
+            "fsize":        5122935,
+            "hash":         "ljfockr0lOil_bZfyaI2ZY78HWoH",
+            "mimeType":     "application/octet-stream",
+            "putTime":      13603956734587420
+        }

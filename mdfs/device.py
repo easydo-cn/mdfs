@@ -15,6 +15,14 @@ class BaseDevice:
     def gen_key(self, prefix='', suffix=''):
         """ 生成一个未用的key """
 
+    def stat(self, key):
+        """ state of a key
+        {    "fsize":        5122935,
+            #"hash":         "ljfockr0lOil_bZfyaI2ZY78HWoH",
+            "mimeType":     "application/octet-stream",
+            "putTime":      13603956734587420
+        }"""
+
     def put_data(self, key, data):
         """ 直接存储一个数据，适合小文件 """
 
@@ -72,9 +80,13 @@ class StorageDeviceManager:
         device, cache_device = self.devices[name]
         return device.os_path(key)
 
-    def cache_os_path(self, name, key):
+    #def cache_os_path(self, name, key):
+    #    device, cache_device = self.devices[name]
+    #    return cache_device.os_path(key)
+
+    def stat(self, name, key):
         device, cache_device = self.devices[name]
-        return cache_device.os_path(key)
+        return device.stat(key)
 
     def remove(self, name, key):
         """ 删除一个文件，同时删除缓存 """
@@ -83,15 +95,15 @@ class StorageDeviceManager:
         # TODO 需要删除所有的缓存
         cache_device.remove(self.get_cache_key(key))
 
-    def get_data(self, name, key):
+    def get_data(self, name, key, offset=0, size=-1):
         """ 读取数据 """
         device, cache_device = self.devices[name]
-        return device.get_data(key)
+        return device.get_data(key, offset, size)
 
-    def get_stream(self, name, key):
-        """ 读取数据流 """
-        device, cache_device = self.devices[name]
-        return device.get_stream(key)
+    #def get_stream(self, name, key):
+    #    """ 读取数据流 """
+    #    device, cache_device = self.devices[name]
+    #    return device.get_stream(key)
 
     def start_put_transaction(self):
         """ 开始一个写入线程 """
@@ -108,7 +120,7 @@ class StorageDeviceManager:
         """ 完结一个写入线程 """
         _local.put_files = None
 
-    def put_data(self, name, key, data):
+    def put_data(self, name, key, data, mime_type=None):
         """ 存储数据 """
         device, cache_device = self.devices[name]
         if getattr(_local, 'put_files', None) is not None:
@@ -122,7 +134,7 @@ class StorageDeviceManager:
             _local.put_files.append((name, to_key))
         return device.copy_data(from_key, to_key)
 
-    def multiput_new(self, name, key, size):
+    def multiput_new(self, name, key, size, mime_type=None):
         """ 开始一个多次写入会话, 返回会话ID"""
         device, cache_device = self.devices[name]
         return device.multiput_new(key, size)
@@ -137,12 +149,13 @@ class StorageDeviceManager:
         device, cache_device = self.devices[name]
         return device.multiput(session_id, data, offset)
 
-    def multiput_save(self, name, session_id, key):
+    def multiput_save(self, name, session_id):
         """ 保存、完结会话 """
         device, cache_device = self.devices[name]
+        key = device.multiput_save(session_id)
         if getattr(_local, 'put_files', None) is not None:
             _local.put_files.append((name, key))
-        return device.multiput_save(session_id, key)
+        return key
 
     def multiput_delete(self, name, session_id):
         """ 删除一个写入会话 """
