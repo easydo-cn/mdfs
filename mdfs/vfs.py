@@ -3,7 +3,6 @@
 import os
 import uuid
 import shutil
-import hashlib
 import mimetypes
 
 from .device import BaseDevice
@@ -130,17 +129,11 @@ class VfsDevice(BaseDevice):
         self.mkdir(dst)
         shutil.copy(src, dst)
 
-    def get_hash(self, key):
-        hash_md5 = hashlib.md5()
-        for chunk in self.get_stream(key):
-            hash_md5.update(chunk)
-        return hash_md5.hexdigest()
-
     def stat(self, key):
         os_path = self.os_path(key)
         return {
             "fileSize": os.path.getsize(os_path),
-            "hash": self.get_hash(key),
+            "hash": None,
             "mimeType": mimetypes.guess_type(key)[0],
             "putTime": os.path.getctime(os_path)
         }
