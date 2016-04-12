@@ -18,7 +18,7 @@ class BaseDevice:
     def stat(self, key):
         """ state of a key
         {    "fsize":        5122935,
-            "hash":         "ljfockr0lOil_bZfyaI2ZY78HWoH",
+            #"hash":         "ljfockr0lOil_bZfyaI2ZY78HWoH",
             "mimeType":     "application/octet-stream",
             "putTime":      13603956734587420
         }"""
@@ -120,7 +120,7 @@ class StorageDeviceManager:
         """ 完结一个写入线程 """
         _local.put_files = None
 
-    def put_data(self, name, key, data):
+    def put_data(self, name, key, data, mime_type=None):
         """ 存储数据 """
         device, cache_device = self.devices[name]
         if getattr(_local, 'put_files', None) is not None:
@@ -134,7 +134,7 @@ class StorageDeviceManager:
             _local.put_files.append((name, to_key))
         return device.copy_data(from_key, to_key)
 
-    def multiput_new(self, name, key, size):
+    def multiput_new(self, name, key, size, mime_type=None):
         """ 开始一个多次写入会话, 返回会话ID"""
         device, cache_device = self.devices[name]
         return device.multiput_new(key, size)
