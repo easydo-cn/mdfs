@@ -3,6 +3,8 @@
 import os
 import uuid
 import shutil
+import hashlib
+import mimetypes
 
 from .device import BaseDevice
 
@@ -86,10 +88,6 @@ class VfsDevice(BaseDevice):
         """ 从offset处写入数据 """
         key = self.get_key_from_session_id(session_id)
         os_path = self.os_path(key)
-        if not os.path.exists(os_path):
-            self.mkdir(os_path)
-            with open(os_path, 'wb'):
-                pass
         if offset is None:
             with open(os_path, 'ab') as f:
                 shutil.copyfileobj(data, f)
@@ -99,13 +97,9 @@ class VfsDevice(BaseDevice):
             f.write(data)
             return f.tell()
 
-    def multiput_save(self, session_id, key):
+    def multiput_save(self, session_id):
         """ 某个文件当前上传位置 """
-        session_key = self.get_key_from_session_id(session_id)
-        src = self.os_path(session_key)
-        dst = self.os_path(key)
-        self.mkdir(dst)
-        shutil.move(src, dst)
+        pass
 
     def multiput_delete(self, session_id):
         """ 删除一个写入会话 """
@@ -136,10 +130,17 @@ class VfsDevice(BaseDevice):
         self.mkdir(dst)
         shutil.copy(src, dst)
 
+    def get_hash(self, key):
+        hash_md5 = hashlib.md5()
+        for chunk in self.get_stream(key):
+            hash_md5.update(chunk)
+        return hash_md5.hexdigest()
+
     def stat(self, key):
+        os_path = self.os_path(key)
         return {
-            "fsize":        5122935,
-            "hash":         "ljfockr0lOil_bZfyaI2ZY78HWoH",
-            "mimeType":     "application/octet-stream",
-            "putTime":      13603956734587420
+            "fileSize": os.path.getsize(os_path),
+            "hash": self.get_hash(key),
+            "mimeType": mimetypes.guess_type(key)[0],
+            "putTime": os.path.getctime(os_path)
         }
