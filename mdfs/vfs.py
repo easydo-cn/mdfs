@@ -28,7 +28,6 @@ class VfsDevice(BaseDevice):
             key = key.replace('/', os.sep)
         # key can't be an absolute path
         key = key.lstrip(os.sep)
-        key = key.replace('\t', os.sep)
         return os.path.join(root_path, key)
 
     def gen_key(self, prefix='', suffix=''):
@@ -39,7 +38,7 @@ class VfsDevice(BaseDevice):
         :return: 设备唯一的key
         """
         key = uuid.uuid4().hex
-        key = '\t'.join((key[:2], key[2:5], key[5:]))
+        key = '/'.join((key[:2], key[2:5], key[5:]))
         return prefix + key + suffix
 
     @staticmethod
@@ -54,39 +53,43 @@ class VfsDevice(BaseDevice):
         with open(path, 'rb') as f:
             return f.read()
 
+    def _get_path_from_session(self, session_id):
+        key, _ = os.path.split(session_id)
+        return self.os_path(key)
+
     def multiput_new(self, key, size):
         """ 开始一个多次写入会话, 返回会话ID"""
         os_path = self.os_path(key)
         self.makedirs(os_path)
-        os_path += ':' + str(size)
         with open(os_path, 'wb'):
             pass
-        return os_path
+        return os.path.join(key, str(size))
 
     def multiput_offset(self, session_id):
         """ 某个文件当前上传位置 """
-        return os.path.getsize(session_id)
+        return os.path.getsize(self._get_path_from_session(session_id))
 
     def multiput(self, session_id, data, offset=None):
         """ 从offset处写入数据 """
+        os_path = self._get_path_from_session(session_id)
         if offset is None:
-            with open(session_id, 'ab') as f:
+            with open(os_path, 'ab') as f:
                 f.write(data)
                 return f.tell()
-        with open(session_id, 'r+b') as f:
+        with open(os_path, 'r+b') as f:
             f.seek(offset)
             f.write(data)
             return f.tell()
 
     def multiput_save(self, session_id):
         """ 某个文件当前上传位置 """
-        size = session_id.split(':')[-1]
+        _, size = os.path.split(session_id)
         if not size.isdigit() or int(size) != self.multiput_offset(session_id):
             raise Exception('File Size Check Failed')
 
     def multiput_delete(self, session_id):
         """ 删除一个写入会话 """
-        self.remove(session_id)
+        os.remove(self._get_path_from_session(session_id))
 
     def put_data(self, key, data):
         """ 直接存储一个数据，适合小文件 """
