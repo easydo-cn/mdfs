@@ -28,6 +28,7 @@ class VfsDevice(BaseDevice):
             key = key.replace('/', os.sep)
         # key can't be an absolute path
         key = key.lstrip(os.sep)
+        key = key.replace('\t', os.sep)
         return os.path.join(root_path, key)
 
     def gen_key(self, prefix='', suffix=''):
@@ -38,9 +39,7 @@ class VfsDevice(BaseDevice):
         :return: 设备唯一的key
         """
         key = uuid.uuid4().hex
-        key = os.sep.join((key[:2], key[2:5], key[5:]))
-        if prefix:
-            prefix = prefix + os.sep
+        key = '\t'.join((key[:2], key[2:5], key[5:]))
         return prefix + key + suffix
 
     @staticmethod
