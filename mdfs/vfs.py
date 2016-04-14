@@ -53,25 +53,22 @@ class VfsDevice(BaseDevice):
         with open(path, 'rb') as f:
             return f.read()
 
-    def _get_path_from_session(self, session_id):
-        key, _ = os.path.split(session_id)
-        return self.os_path(key)
-
     def multiput_new(self, key, size):
         """ 开始一个多次写入会话, 返回会话ID"""
         os_path = self.os_path(key)
         self.makedirs(os_path)
         with open(os_path, 'wb'):
             pass
-        return os.path.join(key, str(size))
+        return os_path + ':' + str(size)
 
     def multiput_offset(self, session_id):
         """ 某个文件当前上传位置 """
-        return os.path.getsize(self._get_path_from_session(session_id))
+        os_path = session_id.rsplit(':', 1)[0]
+        return os.path.getsize(os_path)
 
     def multiput(self, session_id, data, offset=None):
         """ 从offset处写入数据 """
-        os_path = self._get_path_from_session(session_id)
+        os_path = session_id.rsplit(':', 1)[0]
         if offset is None:
             with open(os_path, 'ab') as f:
                 f.write(data)
@@ -83,13 +80,16 @@ class VfsDevice(BaseDevice):
 
     def multiput_save(self, session_id):
         """ 某个文件当前上传位置 """
-        _, size = os.path.split(session_id)
-        if not size.isdigit() or int(size) != self.multiput_offset(session_id):
+        os_path, size = session_id.rsplit(':', 1)
+        if size == '-1': 
+            return
+        elif int(size) != os.path.getsize(os_path):
             raise Exception('File Size Check Failed')
 
     def multiput_delete(self, session_id):
         """ 删除一个写入会话 """
-        os.remove(self._get_path_from_session(session_id))
+        os_path = session_id.rsplit(':', 1)[0]
+        os.remove(os_path)
 
     def put_data(self, key, data):
         """ 直接存储一个数据，适合小文件 """
@@ -118,8 +118,8 @@ class VfsDevice(BaseDevice):
     def stat(self, key):
         os_path = self.os_path(key)
         return {
-            "fileSize": os.path.getsize(os_path),
+            "file_size": os.path.getsize(os_path),
             "hash": None,
-            "mimeType": mimetypes.guess_type(key)[0],
-            "putTime": os.path.getctime(os_path)
+            "mime_type": mimetypes.guess_type(key)[0],
+            "put_time": os.path.getctime(os_path)
         }
