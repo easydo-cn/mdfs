@@ -9,12 +9,19 @@ from .device import BaseDevice
 
 
 class VfsDevice(BaseDevice):
+
+    def __init__(self, name, title='', options={}):
+        self.name = name
+        self.title = title
+        self.options = options
+        # 读取环境变量  VFS_xxx 做为环境变量
+        self.root_path = os.environ['VFS_' + self.name.upper()]
+
+        if not os.path.exists(self.root_path):
+            os.makedirs(self.root_path)
+
     def os_path(self, key):
         """ 找到key在操作系统中的地址 """
-
-        # 读取环境变量  VFS_xxx 做为环境变量
-        root_path = os.environ['VFS_' + self.name.upper()]
-
         if '++versions++' in key:
             # 历史版本，直接找到对应的历史版本文件夹
             # ff/aa.doc/++versions++/1.doc -> ff/.frs/aa.doc/archived/1.doc
@@ -28,7 +35,7 @@ class VfsDevice(BaseDevice):
             key = key.replace('/', os.sep)
         # key can't be an absolute path
         key = key.lstrip(os.sep)
-        return os.path.join(root_path, key)
+        return os.path.join(self.root_path, key)
 
     def gen_key(self, prefix='', suffix=''):
         """
