@@ -38,13 +38,11 @@ class VfsDevice(BaseDevice):
         :return: 设备唯一的key
         """
         key = uuid.uuid4().hex
-        key = os.sep.join((key[:2], key[2:5], key[5:]))
-        if prefix:
-            prefix = prefix + os.sep
+        key = '/'.join((key[:2], key[2:5], key[5:]))
         return prefix + key + suffix
 
     @staticmethod
-    def mkdir(path):
+    def makedirs(path):
         dir_name = os.path.dirname(path)
         if not os.path.exists(dir_name):
             os.makedirs(dir_name)
@@ -55,41 +53,28 @@ class VfsDevice(BaseDevice):
         with open(path, 'rb') as f:
             return f.read()
 
-    def get_stream(self, key, buffer_size=8192):
-        """ 返回文件的一个stream对象，可以通过iterator来逐步得到文件，适合大文件 """
-        path = self.os_path(key)
-        with open(path, 'rb') as f:
-            data = f.read(buffer_size)
-            while data:
-                yield data
-                data = f.read(buffer_size)
-
-    @staticmethod
-    def get_key_from_session_id(session_id):
+    def _get_path_from_session(self, session_id):
         key, _ = os.path.split(session_id)
-        return key
+        return self.os_path(key)
 
     def multiput_new(self, key, size):
         """ 开始一个多次写入会话, 返回会话ID"""
         os_path = self.os_path(key)
-        self.mkdir(os_path)
+        self.makedirs(os_path)
         with open(os_path, 'wb'):
             pass
         return os.path.join(key, str(size))
 
     def multiput_offset(self, session_id):
         """ 某个文件当前上传位置 """
-        key = self.get_key_from_session_id(session_id)
-        os_path = self.os_path(key)
-        return os.path.getsize(os_path)
+        return os.path.getsize(self._get_path_from_session(session_id))
 
     def multiput(self, session_id, data, offset=None):
         """ 从offset处写入数据 """
-        key = self.get_key_from_session_id(session_id)
-        os_path = self.os_path(key)
+        os_path = self._get_path_from_session(session_id)
         if offset is None:
             with open(os_path, 'ab') as f:
-                shutil.copyfileobj(data, f)
+                f.write(data)
                 return f.tell()
         with open(os_path, 'r+b') as f:
             f.seek(offset)
@@ -98,23 +83,24 @@ class VfsDevice(BaseDevice):
 
     def multiput_save(self, session_id):
         """ 某个文件当前上传位置 """
-        pass
+        _, size = os.path.split(session_id)
+        if not size.isdigit() or int(size) != self.multiput_offset(session_id):
+            raise Exception('File Size Check Failed')
 
     def multiput_delete(self, session_id):
         """ 删除一个写入会话 """
-        key = self.get_key_from_session_id(session_id)
-        self.remove(key)
+        os.remove(self._get_path_from_session(session_id))
 
     def put_data(self, key, data):
         """ 直接存储一个数据，适合小文件 """
         os_path = self.os_path(key)
-        self.mkdir(os_path)
+        self.makedirs(os_path)
         with open(os_path, 'wb') as fd:
             fd.write(data)
 
     def put_stream(self, key, stream):
         os_path = self.os_path(key)
-        self.mkdir(os_path)
+        self.makedirs(os_path)
         with open(os_path, 'ab') as f:
             shutil.copyfileobj(stream, f)
             return f.tell()
@@ -126,7 +112,7 @@ class VfsDevice(BaseDevice):
     def copy_data(self, from_key, to_key):
         src = self.os_path(from_key)
         dst = self.os_path(to_key)
-        self.mkdir(dst)
+        self.makedirs(dst)
         shutil.copy(src, dst)
 
     def stat(self, key):
