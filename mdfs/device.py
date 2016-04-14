@@ -84,6 +84,10 @@ class StorageDeviceManager:
     #    device, cache_device = self.devices[name]
     #    return cache_device.os_path(key)
 
+    def exists(self, name, key):
+        device, cache_device = self.devices[name]
+        return device.exists(key)
+
     def stat(self, name, key):
         device, cache_device = self.devices[name]
         return device.stat(key)
@@ -134,7 +138,7 @@ class StorageDeviceManager:
             _local.put_files.append((name, to_key))
         return device.copy_data(from_key, to_key)
 
-    def multiput_new(self, name, key, size, mime_type=None):
+    def multiput_new(self, name, key, size=-1, mime_type=None):
         """ 开始一个多次写入会话, 返回会话ID"""
         device, cache_device = self.devices[name]
         return device.multiput_new(key, size)

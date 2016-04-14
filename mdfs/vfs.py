@@ -48,6 +48,9 @@ class VfsDevice(BaseDevice):
         key = '/'.join((key[:2], key[2:5], key[5:]))
         return prefix + key + suffix
 
+    def exists(self, key):
+        return os.path.exists(self.os_path(key))
+
     @staticmethod
     def makedirs(path):
         dir_name = os.path.dirname(path)
@@ -60,7 +63,7 @@ class VfsDevice(BaseDevice):
         with open(path, 'rb') as f:
             return f.read()
 
-    def multiput_new(self, key, size):
+    def multiput_new(self, key, size=-1):
         """ 开始一个多次写入会话, 返回会话ID"""
         os_path = self.os_path(key)
         self.makedirs(os_path)
