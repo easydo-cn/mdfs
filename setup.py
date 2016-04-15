@@ -3,9 +3,12 @@ import os
 from setuptools import setup, find_packages
 
 here = os.path.abspath(os.path.dirname(__file__))
-README = open(os.path.join(here, 'README.md'), encoding='utf-8').read()
+try:
+    README = open(os.path.join(here, 'README.md'), encoding='utf-8').read()
+except TypeError:
+    README = open(os.path.join(here, 'README.md')).read()
 
-setup (
+setup(
     name='mdfs',
     version='0.1',
     author = "panjy",
