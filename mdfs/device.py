@@ -99,6 +99,13 @@ class StorageDeviceManager:
         # TODO 需要删除所有的缓存
         cache_device.remove(self.get_cache_key(key))
 
+    def move(self, name, key, new_key):
+        """ 更换key """
+        device, cache_device = self.devices[name]
+        device.move(key, new_key)
+        # TODO 需要移动所有的缓存
+        cache_device.move(self.get_cache_key(key), self.get_cache_key(new_key))
+
     def get_data(self, name, key, offset=0, size=-1):
         """ 读取数据 """
         device, cache_device = self.devices[name]

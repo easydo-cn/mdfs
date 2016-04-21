@@ -1,12 +1,14 @@
 # encoding: utf-8
 
 import os
+import sys
 import uuid
 import shutil
 import mimetypes
-
+from types import UnicodeType
 from .device import BaseDevice
 
+FS_CHARSET = sys.getfilesystemencoding()
 
 class VfsDevice(BaseDevice):
 
@@ -118,6 +120,22 @@ class VfsDevice(BaseDevice):
     def remove(self, key):
         """ 删除key文件 """
         os.remove(self.os_path(key))
+
+    def move(self, key, new_key):
+        """ 升级旧的key，更换为一个新的 """
+        ossrc, osdst = self.os_path(key), self.os_path(new_key)
+        # umove dosn't work with unicode filename yet
+        if type(osdst) is UnicodeType and \
+               not os.path.supports_unicode_filenames:
+            ossrc = ossrc.encode(FS_CHARSET)
+            osdst = osdst.encode(FS_CHARSET)
+
+        # windows move 同一个文件夹会有bug，这里改为rename
+        # 例子： c:\test move to c:\Test
+        if ossrc.lower() == osdst.lower():
+            os.rename(ossrc, osdst)
+        else:
+            shutil.move(ossrc, osdst)
 
     def copy_data(self, from_key, to_key):
         src = self.os_path(from_key)
