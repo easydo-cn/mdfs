@@ -7,7 +7,6 @@ import threading
 
 _local = threading.local()
 
-
 class BaseDevice:
 
     def __init__(self, name, title='', options={}):
@@ -117,38 +116,29 @@ class StorageDeviceManager:
         device, cache_device = self.devices[name]
         return device.get_data(key, offset, size)
 
+    def abort(self):
+        """ 废弃一个写入线程 """
+        for device, key in threading.local.put_files:
+             self.remove(device, key)
+        _local.put_files = None
+
+    def commit(self):
+        """ 完结一个写入线程 """
+        _local.put_files = None
+
     #def get_stream(self, name, key):
     #    """ 读取数据流 """
     #    device, cache_device = self.devices[name]
     #    return device.get_stream(key)
 
-    def start_put_transaction(self):
-        """ 开始一个写入线程 """
-        if getattr(_local, 'put_files', None) is None:
-            setattr(_local, 'put_files', [])
-
-    def abort_put_transaction(self):
-        """ 废弃一个写入线程 """
-        for device, key in threading.local.put_files:
-            self.remove(device, key)
-        _local.put_files = None
-
-    def commit_put_transaction(self):
-        """ 完结一个写入线程 """
-        _local.put_files = None
-
     def put_data(self, name, key, data, mime_type=None):
         """ 存储数据 """
         device, cache_device = self.devices[name]
-        if getattr(_local, 'put_files', None) is not None:
-            _local.put_files.append((name, key))
         return device.put_data(key, data)
 
     def copy_data(self, name, from_key, to_key):
         """ 直接存储一个数据，适合小文件 """
         device, cache_device = self.devices[name]
-        if getattr(_local, 'put_files', None) is not None:
-            _local.put_files.append((name, to_key))
         return device.copy_data(from_key, to_key)
 
     def multiput_new(self, name, key, size=-1, mime_type=None):
@@ -172,12 +162,13 @@ class StorageDeviceManager:
         """ 保存、完结会话 """
         device, cache_device = self.devices[name]
         key = device.multiput_save(session_id)
-        self.multiput_sessions.delete(session_id)
-        if getattr(_local, 'put_files', None) is not None:
-            _local.put_files.append((name, key))
+        #self.multiput_sessions.delete(session_id)
         return key
 
-    def multiput_delete(self, name, session_id):
+    def multiput_commit(self, name, session_id):
+        self.multiput_sessions.delete(session_id)
+
+    def multiput_abort(self, name, session_id):
         """ 删除一个写入会话 """
         device, cache_device = self.devices[name]
         result = device.multiput_delete(session_id)
