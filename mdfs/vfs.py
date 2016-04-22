@@ -5,7 +5,7 @@ import sys
 import uuid
 import shutil
 import mimetypes
-from types import UnicodeType
+#from types import UnicodeType
 from .device import BaseDevice
 
 FS_CHARSET = sys.getfilesystemencoding()
@@ -125,10 +125,10 @@ class VfsDevice(BaseDevice):
         """ 升级旧的key，更换为一个新的 """
         ossrc, osdst = self.os_path(key), self.os_path(new_key)
         # umove dosn't work with unicode filename yet
-        if type(osdst) is UnicodeType and \
-               not os.path.supports_unicode_filenames:
-            ossrc = ossrc.encode(FS_CHARSET)
-            osdst = osdst.encode(FS_CHARSET)
+        #if type(osdst) is UnicodeType and \
+        #       not os.path.supports_unicode_filenames:
+        #    ossrc = ossrc.encode(FS_CHARSET)
+        #    osdst = osdst.encode(FS_CHARSET)
 
         self.makedirs(osdst)
         # windows move 同一个文件夹会有bug，这里改为rename

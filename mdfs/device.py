@@ -1,5 +1,8 @@
 # encoding: utf-8
 
+import os
+import json
+import time
 import threading
 
 _local = threading.local()
@@ -57,8 +60,9 @@ class BaseDevice:
 class StorageDeviceManager:
     """ 支持缓存多设备的文件存储管理器 """
 
-    def __init__(self):
+    def __init__(self, session_dir='/var/session'):
         self.devices = dict()
+        self.multiput_sessions = MultiputSessions(session_dir=session_dir)
 
     def add(self, device, cache_device):
         self.devices[device.name] = (device, cache_device)
@@ -150,7 +154,9 @@ class StorageDeviceManager:
     def multiput_new(self, name, key, size=-1, mime_type=None):
         """ 开始一个多次写入会话, 返回会话ID"""
         device, cache_device = self.devices[name]
-        return device.multiput_new(key, size)
+        session = device.multiput_new(key, size)
+        self.multiput_sessions.new(session, name, key)
+        return session
 
     def multiput_offset(self, name, session_id):
         """ 会话写入位置 """
@@ -166,6 +172,7 @@ class StorageDeviceManager:
         """ 保存、完结会话 """
         device, cache_device = self.devices[name]
         key = device.multiput_save(session_id)
+        self.multiput_sessions.delete(session_id)
         if getattr(_local, 'put_files', None) is not None:
             _local.put_files.append((name, key))
         return key
@@ -173,4 +180,53 @@ class StorageDeviceManager:
     def multiput_delete(self, name, session_id):
         """ 删除一个写入会话 """
         device, cache_device = self.devices[name]
-        return device.multiput_delete(session_id)
+        result = device.multiput_delete(session_id)
+        self.multiput_sessions.delete(session_id)
+        return result
+
+    def multiput_cleanup(self, expire):
+        """ 删除超时没有保存文件的中间文件 """
+        for session in self.multiput_sessions.query(expire=expire):
+            self.multiput_delete(session['device'], session['session_id'])
+            self.multiput_sessions.delete(session)
+
+class MultiputSessions:
+
+    def __init__(self, session_dir='/var/session'):
+        self.tmp = session_dir
+        if not os.path.exists(session_dir):
+            os.makedirs(session_dir)
+
+    def os_path(self, upload_session):
+        upload_session = upload_session.replace('\\', '-').replace('/', '').replace(':', '-')
+        return os.path.join(self.tmp, upload_session)
+
+    def new(self, upload_session, device, key, **kwargs):
+        session = {
+            'session_id': upload_session,
+            'device': device,
+            'key': key,
+        }
+        session.update(kwargs)
+        with open(self.os_path(upload_session), 'w') as f:
+            json.dump(session, f)
+
+    def load(self, upload_session):
+        with open(self.os_path(upload_session)) as f:
+            return json.load(f)
+
+    def delete(self, upload_session):
+        os.remove(self.os_path(upload_session))
+
+    def update(self, upload_session, **kwargs):
+        session = self.load(upload_session)
+        session.update(kwargs)
+        with open(self.os_path(upload_session), 'w') as f:
+            json.dump(session, f)
+
+    def query(self, expire=None):
+        for upload_session in os.listdir(self.tmp):
+            fpath = self.os_path(upload_session)
+            if os.path.isfile(fpath) and (expire is None or time.time() - os.path.getmtime(fpath) > expire):
+                yield self.load(upload_session)
+
