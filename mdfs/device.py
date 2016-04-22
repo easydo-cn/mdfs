@@ -104,7 +104,9 @@ class StorageDeviceManager:
         device, cache_device = self.devices[name]
         device.move(key, new_key)
         # TODO 需要移动所有的缓存
-        cache_device.move(self.get_cache_key(key), self.get_cache_key(new_key))
+        cache_key = self.get_cache_key(key)
+        if cache_device.exists(cache_key):
+            cache_device.move(cache_key, self.get_cache_key(new_key))
 
     def get_data(self, name, key, offset=0, size=-1):
         """ 读取数据 """

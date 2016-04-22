@@ -130,6 +130,7 @@ class VfsDevice(BaseDevice):
             ossrc = ossrc.encode(FS_CHARSET)
             osdst = osdst.encode(FS_CHARSET)
 
+        self.makedirs(osdst)
         # windows move 同一个文件夹会有bug，这里改为rename
         # 例子： c:\test move to c:\Test
         if ossrc.lower() == osdst.lower():
