@@ -61,7 +61,7 @@ class StorageDeviceManager:
 
     def __init__(self, session_dir='/var/session'):
         self.devices = dict()
-        self.multiput_sessions = MultiputSessions(session_dir=session_dir)
+        self.sessions = Sessions(session_dir=session_dir)
 
     def add(self, device, cache_device):
         self.devices[device.name] = (device, cache_device)
@@ -116,36 +116,54 @@ class StorageDeviceManager:
         device, cache_device = self.devices[name]
         return device.get_data(key, offset, size)
 
-    def abort(self):
-        """ 废弃一个写入线程 """
-        for device, key in threading.local.put_files:
-             self.remove(device, key)
-        _local.put_files = None
+    def _t_add(self, name, key):
+        if getattr(_local, 'put_files', None) is None:
+		    setattr(_local, 'put_files', [])
+		_local.put_files.append((name, key))
 
     def commit(self):
         """ 完结一个写入线程 """
+        for (name, key) in getattr(_local, 'put_files', []):
+            self.sessions.delete(name, key)
+        _local.put_files = []
+
+    def abort(self):
+        """ 删除一个写入会话 """
+        for (name, key) in getattr(_local, 'put_files', []):
+             self.remove(name, key)
+             self.sessions.delete(name, key)
         _local.put_files = None
 
-    #def get_stream(self, name, key):
-    #    """ 读取数据流 """
-    #    device, cache_device = self.devices[name]
-    #    return device.get_stream(key)
+    def cleanup(self, expire):
+        """ 删除超时没有保存文件的中间文件 """
+        for session in self.sessions.query(expire=expire):
+            self.abort(session['device'], session['key'])
+            if session.get('session_id'):
+                self.multiput_delete(session['device'], session['session_id'])
+            else:
+                self.remove(session['device'], session['key'])
 
-    def put_data(self, name, key, data, mime_type=None):
+    def put_data(self, name, key, data, mime_type=None, auto_commit=False):
         """ 存储数据 """
         device, cache_device = self.devices[name]
-        return device.put_data(key, data)
+        device.put_data(key, data)
+        if not auto_commit:
+            self.sessions.new(name, key)
+            self._t_add(name, key)
 
-    def copy_data(self, name, from_key, to_key):
+    def copy_data(self, name, from_key, to_key, auto_commit=False):
         """ 直接存储一个数据，适合小文件 """
         device, cache_device = self.devices[name]
-        return device.copy_data(from_key, to_key)
+        device.copy_data(from_key, to_key)
+        if not auto_commit:
+            self.sessions.new(name, to_key)
+            self._t_add(name, key)
 
     def multiput_new(self, name, key, size=-1, mime_type=None):
         """ 开始一个多次写入会话, 返回会话ID"""
         device, cache_device = self.devices[name]
         session = device.multiput_new(key, size)
-        self.multiput_sessions.new(session, name, key)
+        self.sessions.new(name, key, session_id=session)
         return session
 
     def multiput_offset(self, name, session_id):
@@ -158,58 +176,49 @@ class StorageDeviceManager:
         device, cache_device = self.devices[name]
         return device.multiput(session_id, data, offset)
 
-    def multiput_save(self, name, session_id):
+    def multiput_delete(self, name, session_id):
+        """ 删除会话 """
+        device, cache_device = self.devices[name]
+        return device.multiput_delete(session_id, data)
+
+    def multiput_save(self, name, session_id, auto_commit=False):
         """ 保存、完结会话 """
         device, cache_device = self.devices[name]
         key = device.multiput_save(session_id)
-        #self.multiput_sessions.delete(session_id)
+        if not auto_commit:
+            self.sessions.update(name, key, session_id='')
+            self._t_add(name, key)
         return key
 
-    def multiput_commit(self, name, session_id):
-        self.multiput_sessions.delete(session_id)
-
-    def multiput_abort(self, name, session_id):
-        """ 删除一个写入会话 """
-        device, cache_device = self.devices[name]
-        result = device.multiput_delete(session_id)
-        self.multiput_sessions.delete(session_id)
-        return result
-
-    def multiput_cleanup(self, expire):
-        """ 删除超时没有保存文件的中间文件 """
-        for session in self.multiput_sessions.query(expire=expire):
-            self.multiput_delete(session['device'], session['session_id'])
-            self.multiput_sessions.delete(session)
-
-class MultiputSessions:
+class Sessions:
 
     def __init__(self, session_dir='/var/session'):
         self.tmp = session_dir
         if not os.path.exists(session_dir):
             os.makedirs(session_dir)
 
-    def os_path(self, upload_session):
+    def os_path(self, device, key):
+        upload_session = device+'-'+key
         upload_session = upload_session.replace('\\', '-').replace('/', '').replace(':', '-')
         return os.path.join(self.tmp, upload_session)
 
-    def new(self, upload_session, device, key, **kwargs):
+    def new(self, device, key, **kwargs):
         session = {
-            'session_id': upload_session,
             'device': device,
             'key': key,
         }
         session.update(kwargs)
-        with open(self.os_path(upload_session), 'w') as f:
+        with open(self.os_path(device, key), 'w') as f:
             json.dump(session, f)
 
-    def load(self, upload_session):
+    def load(self, device, key):
         with open(self.os_path(upload_session)) as f:
             return json.load(f)
 
-    def delete(self, upload_session):
+    def delete(self, device, key):
         os.remove(self.os_path(upload_session))
 
-    def update(self, upload_session, **kwargs):
+    def update(self, device, key, **kwargs):
         session = self.load(upload_session)
         session.update(kwargs)
         with open(self.os_path(upload_session), 'w') as f:
