@@ -118,8 +118,8 @@ class StorageDeviceManager:
 
     def _t_add(self, name, key):
         if getattr(_local, 'put_files', None) is None:
-		    setattr(_local, 'put_files', [])
-		_local.put_files.append((name, key))
+            setattr(_local, 'put_files', [])
+            _local.put_files.append((name, key))
 
     def commit(self):
         """ 完结一个写入线程 """
@@ -157,7 +157,7 @@ class StorageDeviceManager:
         device.copy_data(from_key, to_key)
         if not auto_commit:
             self.sessions.new(name, to_key)
-            self._t_add(name, key)
+            self._t_add(name, to_key)
 
     def multiput_new(self, name, key, size=-1, mime_type=None):
         """ 开始一个多次写入会话, 返回会话ID"""
@@ -179,7 +179,7 @@ class StorageDeviceManager:
     def multiput_delete(self, name, session_id):
         """ 删除会话 """
         device, cache_device = self.devices[name]
-        return device.multiput_delete(session_id, data)
+        return device.multiput_delete(session_id)
 
     def multiput_save(self, name, session_id, auto_commit=False):
         """ 保存、完结会话 """
@@ -212,16 +212,16 @@ class Sessions:
             json.dump(session, f)
 
     def load(self, device, key):
-        with open(self.os_path(upload_session)) as f:
+        with open(self.os_path(device, key)) as f:
             return json.load(f)
 
     def delete(self, device, key):
-        os.remove(self.os_path(upload_session))
+        os.remove(self.os_path(device, key))
 
     def update(self, device, key, **kwargs):
-        session = self.load(upload_session)
+        session = self.load(device, key)
         session.update(kwargs)
-        with open(self.os_path(upload_session), 'w') as f:
+        with open(self.os_path(device, key), 'w') as f:
             json.dump(session, f)
 
     def query(self, expire=None):
