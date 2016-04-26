@@ -94,7 +94,7 @@ class VfsDevice(BaseDevice):
         """ 某个文件当前上传位置 """
         os_path, size = session_id.rsplit(':', 1)
         if size == '-1': 
-            return
+            return os_path[len(self.root_path)+1:].replace('\\', '/')
         elif int(size) != os.path.getsize(os_path):
             raise Exception('File Size Check Failed')
 

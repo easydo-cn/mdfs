@@ -132,7 +132,7 @@ class StorageDeviceManager:
         for (name, key) in getattr(_local, 'put_files', []):
              self.remove(name, key)
              self.sessions.delete(name, key)
-        _local.put_files = None
+        _local.put_files = []
 
     def cleanup(self, expire):
         """ 删除超时没有保存文件的中间文件 """
