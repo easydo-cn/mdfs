@@ -118,11 +118,13 @@ class StorageDeviceManager:
 
     def _t_add(self, name, key):
         if getattr(_local, 'put_files', None) is None:
-            setattr(_local, 'put_files', [])
+            _local.put_files = [(name, key)]
+        else:
             _local.put_files.append((name, key))
 
     def commit(self):
         """ 完结一个写入线程 """
+        #print 'commit mdfs', getattr(_local, 'put_files', [])
         for (name, key) in getattr(_local, 'put_files', []):
             self.sessions.delete(name, key)
         _local.put_files = []
