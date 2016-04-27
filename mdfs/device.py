@@ -166,6 +166,7 @@ class StorageDeviceManager:
         device, cache_device = self.devices[name]
         session = device.multiput_new(key, size)
         self.sessions.new(name, key, session_id=session)
+        self._t_add(name, key)
         return session
 
     def multiput_offset(self, name, session_id):
@@ -183,13 +184,11 @@ class StorageDeviceManager:
         device, cache_device = self.devices[name]
         return device.multiput_delete(session_id)
 
-    def multiput_save(self, name, session_id, auto_commit=False):
+    def multiput_save(self, name, session_id):
         """ 保存、完结会话 """
         device, cache_device = self.devices[name]
         key = device.multiput_save(session_id)
-        if not auto_commit:
-            self.sessions.update(name, key, session_id='')
-            self._t_add(name, key)
+        self.sessions.update(name, key, session_id='')
         return key
 
 class Sessions:

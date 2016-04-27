@@ -119,7 +119,9 @@ class VfsDevice(BaseDevice):
 
     def remove(self, key):
         """ 删除key文件 """
-        os.remove(self.os_path(key))
+        ospath = self.os_path(key)
+        if os.path.exists(ospath):
+            os.remove(ospath)
 
     def move(self, key, new_key):
         """ 升级旧的key，更换为一个新的 """
