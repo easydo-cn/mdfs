@@ -4,8 +4,11 @@ import os
 import json
 import time
 import threading
+from os.path import expanduser
 
 _local = threading.local()
+
+SESSION_DIR = os.path.join(expanduser("~") + ".mdfs-sessions")
 
 class BaseDevice:
 
@@ -55,11 +58,11 @@ class BaseDevice:
     def get_stream(self, key):
         """ 返回文件的一个stream对象，可以通过iterator来逐步得到文件，适合大文件 """
 
-
 class StorageDeviceManager:
     """ 支持缓存多设备的文件存储管理器 """
 
-    def __init__(self, session_dir='/var/session'):
+    def __init__(self, session_dir=SESSION_DIR):
+
         self.devices = dict()
         self.sessions = Sessions(session_dir=session_dir)
 
