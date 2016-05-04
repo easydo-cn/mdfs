@@ -109,11 +109,14 @@ class VfsDevice(BaseDevice):
         with open(os_path, 'wb') as fd:
             fd.write(data)
 
-    def put_stream(self, key, stream):
+    def put_stream(self, key, stream, size=-1):
+        """ 流式上传 """
         os_path = self.os_path(key)
         self.makedirs(os_path)
+
         with open(os_path, 'ab') as f:
-            shutil.copyfileobj(stream, f)
+            for data in stream:
+                f.write(data)
             return f.tell()
 
     def remove(self, key):

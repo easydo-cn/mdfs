@@ -156,6 +156,14 @@ class StorageDeviceManager:
             self.sessions.new(name, key)
             self._t_add(name, key)
 
+    def put_stream(self, name, key, stream, mime_type=None, auto_commit=False):
+        """ 存储数据 """
+        device, cache_device = self.devices[name]
+        device.put_stream(key, stream)
+        if not auto_commit:
+            self.sessions.new(name, key)
+            self._t_add(name, key)
+
     def copy_data(self, name, from_key, to_key, auto_commit=False):
         """ 直接存储一个数据，适合小文件 """
         device, cache_device = self.devices[name]
