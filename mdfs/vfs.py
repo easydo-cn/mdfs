@@ -12,6 +12,8 @@ FS_CHARSET = sys.getfilesystemencoding()
 
 class VfsDevice(BaseDevice):
 
+    PART_SIZE = 1024*1024
+
     def __init__(self, name, title='', options={}):
         self.name = name
         self.title = title

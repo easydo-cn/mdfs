@@ -238,7 +238,8 @@ class Sessions:
 
     def query(self, expire=None):
         for upload_session in os.listdir(self.tmp):
-            fpath = self.os_path(upload_session)
+            device, key = upload_session.split('-', 1)
+            fpath = self.os_path(device, key)
             if os.path.isfile(fpath) and (expire is None or time.time() - os.path.getmtime(fpath) > expire):
-                yield self.load(upload_session)
+                yield self.load(device, key)
 
