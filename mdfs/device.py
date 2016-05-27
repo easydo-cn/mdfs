@@ -80,7 +80,7 @@ class StorageDeviceManager:
 
     def get_cache_key(self, key, mime='', subpath=''):
         mime = mime.replace('/', '_')
-        return key + '.' + mime + '/' + subpath
+        return key + '___/' + mime + '/' + subpath
 
     def os_path(self, name, key):
         device, cache_device = self.devices[name]
