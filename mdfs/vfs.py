@@ -125,8 +125,12 @@ class VfsDevice(BaseDevice):
     def remove(self, key):
         """ 删除key文件 """
         ospath = self.os_path(key)
-        if os.path.exists(ospath):
-            os.remove(ospath)
+        os.remove(ospath)
+
+    def rmdir(self, key):
+        """ 删除key文件夹"""
+        ospath = self.os_path(key)
+        shutil.rmtree(ospath)
 
     def move(self, key, new_key):
         """ 升级旧的key，更换为一个新的 """

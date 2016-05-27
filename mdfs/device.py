@@ -80,7 +80,10 @@ class StorageDeviceManager:
 
     def get_cache_key(self, key, mime='', subpath=''):
         mime = mime.replace('/', '_')
-        return key + '___/' + mime + '/' + subpath
+        if mime:
+            return key + '___/' + mime + '/' + subpath
+        else:
+            return key + '___/'
 
     def os_path(self, name, key):
         device, cache_device = self.devices[name]
@@ -103,7 +106,9 @@ class StorageDeviceManager:
         device, cache_device = self.devices[name]
         device.remove(key)
         # TODO 需要删除所有的缓存
-        cache_device.remove(self.get_cache_key(key))
+        cache_key = self.get_cache_key(key)
+        if cache_device.exists(cache_key):
+            cache_device.rmdir(cache_key)
 
     def move(self, name, key, new_key):
         """ 更换key """
