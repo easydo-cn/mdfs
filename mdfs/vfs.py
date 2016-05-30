@@ -7,7 +7,10 @@ import shutil
 import mimetypes
 #from types import UnicodeType
 from .device import BaseDevice
-from types import UnicodeType
+try:
+    from types import UnicodeType
+except ImportError:
+    UnicodeType = None
 
 FS_CHARSET = sys.getfilesystemencoding()
 
