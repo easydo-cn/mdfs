@@ -217,8 +217,8 @@ class Sessions:
             os.makedirs(session_dir)
 
     def os_path(self, device, key):
-        upload_session = device+'-'+key
-        upload_session = upload_session.replace('\\', '-').replace('/', '').replace(':', '-')
+        upload_session = device+'___'+key
+        upload_session = upload_session.replace('/', '___')
         return os.path.join(self.tmp, upload_session)
 
     def new(self, device, key, **kwargs):
@@ -245,8 +245,22 @@ class Sessions:
 
     def query(self, expire=None):
         for upload_session in os.listdir(self.tmp):
-            device, key = upload_session.split('-', 1)
-            fpath = self.os_path(device, key)
+            fpath = os.path.join(self.tmp, upload_session)
             if os.path.isfile(fpath) and (expire is None or time.time() - os.path.getmtime(fpath) > expire):
+                device, key = upload_session.split('___', 1)
+                key = key.replace('___', '/')
                 yield self.load(device, key)
 
+if __name__ == '__main__':
+    sessions = Sessions()
+    device, key = 'default', 'default.zopen.test/as/dfa/234asefawefrasd.doc'
+    print sessions.os_path(device,key)
+    sessions.new(device, key, a=1, b=2)
+    info = sessions.load(device, key)
+    print info['a'] == 1, info['b'] ==2
+    sessions.update(device, key, c=22)
+    info = sessions.load(device, key)
+    print info['a'] == 1, info['b'] ==2, info['c'] == 22
+    print len(list(sessions.query(expire=None)))
+    sessions.delete(device, key)
+    print len(list(sessions.query(expire=None)))
