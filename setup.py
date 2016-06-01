@@ -30,6 +30,7 @@ setup(
          'setuptools',
          'oss2',
         ],
+    test_suite='tests',
     zip_safe = False,
     entry_points = """
     """
