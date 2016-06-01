@@ -254,13 +254,13 @@ class Sessions:
 if __name__ == '__main__':
     sessions = Sessions()
     device, key = 'default', 'default.zopen.test/as/dfa/234asefawefrasd.doc'
-    print sessions.os_path(device,key)
+    print(sessions.os_path(device,key))
     sessions.new(device, key, a=1, b=2)
     info = sessions.load(device, key)
-    print info['a'] == 1, info['b'] ==2
+    print(info['a'] == 1, info['b'] ==2)
     sessions.update(device, key, c=22)
     info = sessions.load(device, key)
-    print info['a'] == 1, info['b'] ==2, info['c'] == 22
-    print len(list(sessions.query(expire=None)))
+    print(info['a'] == 1, info['b'] ==2, info['c'] == 22)
+    print(len(list(sessions.query(expire=None))))
     sessions.delete(device, key)
-    print len(list(sessions.query(expire=None)))
+    print(len(list(sessions.query(expire=None))))
