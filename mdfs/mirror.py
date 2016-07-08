@@ -9,11 +9,14 @@ except ImportError:
 
 class MirrorDevice(BaseDevice):
 
-    def __init__(self, name, mirror_devices, title='', options={}):
+    def __init__(self, name, title='', mirror_devices=[], options={}):
         self.name = name
         self.title = title
         self.options = options
         # 读取环境变量  VFS_xxx 做为环境变量
+        self.set_devices(mirror_devices)
+
+    def set_devices(self, mirror_devices):
         self.mirror_devices = mirror_devices
 
     def os_path(self, key):
