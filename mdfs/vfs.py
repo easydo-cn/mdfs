@@ -18,12 +18,12 @@ class VfsDevice(BaseDevice):
 
     PART_SIZE = 1024*1024
 
-    def __init__(self, name, title='', options={}):
+    def __init__(self, name, title='', root_path=None, options={}):
         self.name = name
         self.title = title
         self.options = options
         # 读取环境变量  VFS_xxx 做为环境变量
-        self.root_path = os.environ['VFS_' + self.name.upper()]
+        self.root_path = root_path or os.environ['VFS_' + self.name.upper()]
 
         if not os.path.exists(self.root_path):
             os.makedirs(self.root_path)
@@ -60,7 +60,7 @@ class VfsDevice(BaseDevice):
         return os.path.exists(self.os_path(key))
 
     @staticmethod
-    def makedirs(path):
+    def _makedirs(path):
         dir_name = os.path.dirname(path)
         if not os.path.exists(dir_name):
             os.makedirs(dir_name)
@@ -74,7 +74,7 @@ class VfsDevice(BaseDevice):
     def multiput_new(self, key, size=-1):
         """ 开始一个多次写入会话, 返回会话ID"""
         os_path = self.os_path(key)
-        self.makedirs(os_path)
+        self._makedirs(os_path)
         with open(os_path, 'wb'):
             pass
         return os_path + ':' + str(size)
@@ -111,14 +111,14 @@ class VfsDevice(BaseDevice):
     def put_data(self, key, data):
         """ 直接存储一个数据，适合小文件 """
         os_path = self.os_path(key)
-        self.makedirs(os_path)
+        self._makedirs(os_path)
         with open(os_path, 'wb') as fd:
             fd.write(data)
 
     def put_stream(self, key, stream, size=-1):
         """ 流式上传 """
         os_path = self.os_path(key)
-        self.makedirs(os_path)
+        self._makedirs(os_path)
 
         with open(os_path, 'ab') as f:
             for data in stream:
@@ -144,7 +144,7 @@ class VfsDevice(BaseDevice):
             ossrc = ossrc.encode(FS_CHARSET)
             osdst = osdst.encode(FS_CHARSET)
 
-        self.makedirs(osdst)
+        self._makedirs(osdst)
         # windows move 同一个文件夹会有bug，这里改为rename
         # 例子： c:\test move to c:\Test
         if ossrc.lower() == osdst.lower():
@@ -155,7 +155,7 @@ class VfsDevice(BaseDevice):
     def copy_data(self, from_key, to_key):
         src = self.os_path(from_key)
         dst = self.os_path(to_key)
-        self.makedirs(dst)
+        self._makedirs(dst)
         shutil.copy(src, dst)
 
     def stat(self, key):
