@@ -22,8 +22,7 @@ class VfsDevice(BaseDevice):
         self.name = name
         self.title = title
         self.options = options
-        # 读取环境变量  VFS_xxx 做为环境变量
-        self.root_path = root_path or os.environ['VFS_' + self.name.upper()]
+        self.root_path = root_path
 
         if not os.path.exists(self.root_path):
             os.makedirs(self.root_path)
