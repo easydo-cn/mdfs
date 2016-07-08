@@ -9,19 +9,22 @@ except ImportError:
 
 class MirrorDevice(BaseDevice):
 
-    def __init__(self, name, title='', mirror_devices=[], options={}):
+    def __init__(self, name, title='', mirror_devices=[], read_devices=[], options={}):
         self.name = name
         self.title = title
         self.options = options
         # 读取环境变量  VFS_xxx 做为环境变量
-        self.set_devices(mirror_devices)
-
-    def set_devices(self, mirror_devices):
         self.mirror_devices = mirror_devices
+        if read_devices:
+            for device in mirror_devices:
+                if device.name in read_devices:
+                    self.read_device = device
+        else:
+            self.read_device = mirror_devices[0]
 
     def os_path(self, key):
         """ 找到key在操作系统中的地址 """
-        return self.mirror_devices[0].os_path(key)
+        return self.read_device.os_path(key)
 
     def gen_key(self, prefix='', suffix=''):
         """
@@ -33,11 +36,11 @@ class MirrorDevice(BaseDevice):
         return self.mirror_devices[0].gen_key(prefix, suffix)
 
     def exists(self, key):
-        return self.mirror_devices[0].exists(key)
+        return self.read_device.exists(key)
 
     def get_data(self, key, offset=0, size=-1):
         """ 根据key返回文件内容，适合小文件 """
-        return self.mirror_devices[0].get_data(key, offset, size)
+        return self.read_device.get_data(key, offset, size)
 
     def multiput_new(self, key, size=-1):
         """ 开始一个多次写入会话, 返回会话ID"""
@@ -113,5 +116,5 @@ class MirrorDevice(BaseDevice):
         return results[0]
 
     def stat(self, key):
-        return self.mirror_devices[0].stat(key)
+        return self.read_device.stat(key)
 
