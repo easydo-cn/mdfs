@@ -149,7 +149,7 @@ class StorageDeviceManager:
     def cleanup(self, expire):
         """ 删除超时没有保存文件的中间文件 """
         for session in self.sessions.query(expire=expire):
-            self.abort(session['device'], session['key'])
+            self.sessions.delete(session['device'], session['key'])
             if session.get('session_id'):
                 self.multiput_delete(session['device'], session['session_id'])
             else:
