@@ -47,31 +47,34 @@ class MirrorDevice(BaseDevice):
         results = []
         for device in self.mirror_devices:
             results.append(device.multiput_new(key, size))
-        return results[0]
+        return "|".join(results)
 
     def multiput_offset(self, session_id):
         """ 某个文件当前上传位置 """
-        return self.mirror_devices[0].multiput_offset(session_id)
+        return self.mirror_devices[0].multiput_offset(session_id.split("|", 1)[0])
 
     def multiput(self, session_id, data, offset=None):
         """ 从offset处写入数据 """
         results = []
-        for device in self.mirror_devices:
-            results.append(device.multiput(session_id, data, offset))
+        sessions = session_id.split("|")
+        for index, device in enumerate(self.mirror_devices):
+            results.append(device.multiput(sessions[index], data, offset))
         return results[0]
 
     def multiput_save(self, session_id):
         """ 某个文件当前上传位置 """
         results = []
-        for device in self.mirror_devices:
-            results.append(device.multiput_save(session_id))
+        sessions = session_id.split("|")
+        for index, device in enumerate(self.mirror_devices):
+            results.append(device.multiput_save(sessions[index]))
         return results[0]
 
     def multiput_delete(self, session_id):
         """ 删除一个写入会话 """
         results = []
-        for device in self.mirror_devices:
-            results.append(device.multiput_delete(session_id))
+        sessions = session_id.split("|")
+        for index, device in enumerate(self.mirror_devices):
+            results.append(device.multiput_delete(sessions[index]))
         return results[0]
 
     def put_data(self, key, data):
