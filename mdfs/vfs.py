@@ -14,6 +14,7 @@ except ImportError:
 
 FS_CHARSET = sys.getfilesystemencoding()
 
+SESSIONS = {}
 class VfsDevice(BaseDevice):
 
     PART_SIZE = 1024*1024
@@ -74,9 +75,10 @@ class VfsDevice(BaseDevice):
         """ 开始一个多次写入会话, 返回会话ID"""
         os_path = self.os_path(key)
         self._makedirs(os_path)
-        with open(os_path, 'wb'):
-            pass
-        return os_path + ':' + str(size)
+        fp = open(os_path, 'wb')
+        session = os_path + ':' + str(size)
+        SESSIONS[session] = fp
+        return session
 
     def multiput_offset(self, session_id):
         """ 某个文件当前上传位置 """
@@ -85,18 +87,20 @@ class VfsDevice(BaseDevice):
 
     def multiput(self, session_id, data, offset=None):
         """ 从offset处写入数据 """
-        os_path = session_id.rsplit(':', 1)[0]
+        #os_path = session_id.rsplit(':', 1)[0]
+        f = SESSIONS[session_id]
         if offset is None:
-            with open(os_path, 'ab') as f:
-                f.write(data)
-                return f.tell()
-        with open(os_path, 'r+b') as f:
+            f.write(data)
+            return f.tell()
+        else:
             f.seek(offset)
             f.write(data)
             return f.tell()
 
     def multiput_save(self, session_id):
         """ 某个文件当前上传位置 """
+        SESSIONS[session_id].close()
+        del SESSIONS[session_id]
         os_path, size = session_id.rsplit(':', 1)
         if size != '-1' and int(size) != os.path.getsize(os_path):
             raise Exception('File Size Check Failed')
@@ -104,6 +108,8 @@ class VfsDevice(BaseDevice):
 
     def multiput_delete(self, session_id):
         """ 删除一个写入会话 """
+        SESSIONS[session_id].close()
+        del SESSIONS[session_id]
         os_path = session_id.rsplit(':', 1)[0]
         os.remove(os_path)
 
