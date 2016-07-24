@@ -1,6 +1,7 @@
 # encoding: utf-8
 
 import os
+import time
 import sys
 import uuid
 import shutil
@@ -13,8 +14,59 @@ except ImportError:
     UnicodeType = None
 
 FS_CHARSET = sys.getfilesystemencoding()
+OPEN_FILE_TIMEOUT = 60 * 10
 
-SESSIONS = {}
+class OpenFiles:
+    """ 管理打开的文件，打开10分钟就关闭；释放资源 """
+    
+    def __init__(self):
+        self._fps = {}
+
+    def new_file(self, path):
+        """ 新建文件 """
+        self._fps[path] = (open(path, 'wb'), 0, int(time.time()))  # cache
+        return self._fps[path]
+
+    def get_size(self, path):
+        if path in self._fps:
+            return self._fps[path][1]
+        else:
+            return os.path.getsize(path)
+
+    def clean(self):
+        """ 清理cache, 关闭和删除超时的 """
+        now = int(time.time())
+        for path, info in self._fps.iteritems():
+            modified = info[3]
+            if now > modified + OPEN_FILE_TIMEOUT:
+                self.close_file(path)
+
+    def close_file(self, path):
+        """ 关闭文件 """
+        try:
+            self._fps[path][0].close()
+        except Exception, e:
+            print('close session error:' + str(e))
+        del self._fps[path]
+
+    def append_data(self, path, data, offset=None):
+        """ 文件写数据 """
+        if path not in self._fps:
+            fp, size = open(path, 'ab'), 0
+        else:
+            fp, size, _ = self._fps.pop(path)  # pop避免被清理
+
+        if offset is not None:
+            fp.seek(offset)
+            size = offset
+
+        fp.write(data)
+        size += len(data)
+        self._fps[path] = fp, size, int(time.time())
+        return size
+
+OPEN_FILES = OpenFiles()
+
 class VfsDevice(BaseDevice):
 
     PART_SIZE = 1024*1024
@@ -75,42 +127,34 @@ class VfsDevice(BaseDevice):
         """ 开始一个多次写入会话, 返回会话ID"""
         os_path = self.os_path(key)
         self._makedirs(os_path)
-        fp = open(os_path, 'wb')
         session = os_path + ':' + str(size)
-        SESSIONS[session] = fp
+        OPEN_FILES.clean()  # 关闭全部超时不用的文件
+        #OPEN_FILES.new_file(os_path)
         return session
-
+    
     def multiput_offset(self, session_id):
         """ 某个文件当前上传位置 """
         os_path = session_id.rsplit(':', 1)[0]
-        return os.path.getsize(os_path)
+        return OPEN_FILES.get_size(os_path)
 
     def multiput(self, session_id, data, offset=None):
         """ 从offset处写入数据 """
-        #os_path = session_id.rsplit(':', 1)[0]
-        f = SESSIONS[session_id]
-        if offset is None:
-            f.write(data)
-            return f.tell()
-        else:
-            f.seek(offset)
-            f.write(data)
-            return f.tell()
+        os_path = session_id.rsplit(':', 1)[0]
+        return OPEN_FILES.append_data(os_path, data, offset)
 
     def multiput_save(self, session_id):
         """ 某个文件当前上传位置 """
-        SESSIONS[session_id].close()
-        del SESSIONS[session_id]
         os_path, size = session_id.rsplit(':', 1)
+        OPEN_FILES.close_file(os_path)
+    
         if size != '-1' and int(size) != os.path.getsize(os_path):
             raise Exception('File Size Check Failed')
         return os_path[len(self.root_path)+1:].replace('\\', '/')
 
     def multiput_delete(self, session_id):
         """ 删除一个写入会话 """
-        SESSIONS[session_id].close()
-        del SESSIONS[session_id]
         os_path = session_id.rsplit(':', 1)[0]
+        OPEN_FILES.close_file(os_path)
         os.remove(os_path)
 
     def put_data(self, key, data):
