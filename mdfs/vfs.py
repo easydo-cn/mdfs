@@ -36,7 +36,7 @@ class OpenFiles:
     def clean(self):
         """ 清理cache, 关闭和删除超时的 """
         now = int(time.time())
-        for path, info in self._fps.iteritems():
+        for path, info in self._fps.items():
             modified = info[3]
             if now > modified + OPEN_FILE_TIMEOUT:
                 self.close_file(path)
@@ -45,7 +45,7 @@ class OpenFiles:
         """ 关闭文件 """
         try:
             self._fps[path][0].close()
-        except Exception, e:
+        except (Exception, e):
             print('close session error:' + str(e))
         del self._fps[path]
 
@@ -129,7 +129,7 @@ class VfsDevice(BaseDevice):
         self._makedirs(os_path)
         session = os_path + ':' + str(size)
         OPEN_FILES.clean()  # 关闭全部超时不用的文件
-        #OPEN_FILES.new_file(os_path)
+        OPEN_FILES.new_file(os_path)
         return session
     
     def multiput_offset(self, session_id):
