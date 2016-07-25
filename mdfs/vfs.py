@@ -37,7 +37,7 @@ class OpenFiles:
         """ 清理cache, 关闭和删除超时的 """
         now = int(time.time())
         for path, info in self._fps.items():
-            modified = info[3]
+            modified = info[2]
             if now > modified + OPEN_FILE_TIMEOUT:
                 self.close_file(path)
 
@@ -45,7 +45,7 @@ class OpenFiles:
         """ 关闭文件 """
         try:
             self._fps[path][0].close()
-        except (Exception, e):
+        except Exception as e:
             print('close session error:' + str(e))
         del self._fps[path]
 
