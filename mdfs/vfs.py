@@ -43,11 +43,12 @@ class OpenFiles:
 
     def close_file(self, path):
         """ 关闭文件 """
-        try:
-            self._fps[path][0].close()
-        except Exception as e:
-            print('close session error:' + str(e))
-        del self._fps[path]
+        if path in self._fps:
+            try:
+                self._fps[path][0].close()
+            except Exception as e:
+                print('close session error:' + str(e))
+            del self._fps[path]
 
     def append_data(self, path, data, offset=None):
         """ 文件写数据 """
