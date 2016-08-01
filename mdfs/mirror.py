@@ -77,20 +77,6 @@ class MirrorDevice(BaseDevice):
             results.append(device.multiput_delete(sessions[index]))
         return results[0]
 
-    def put_data(self, key, data):
-        """ 直接存储一个数据，适合小文件 """
-        results = []
-        for device in self.mirror_devices:
-            results.append(device.put_data(key, data))
-        return results[0]
-
-    def put_stream(self, key, stream, size=-1):
-        """ 流式上传 """
-        results = []
-        for device in self.mirror_devices:
-            results.append(device.put_stream(key, stream, size))
-        return results[0]
-
     def remove(self, key):
         """ 删除key文件 """
         results = []

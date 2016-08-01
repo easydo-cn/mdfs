@@ -28,9 +28,6 @@ class BaseDevice:
             "putTime":      13603956734587420
         }"""
 
-    def put_data(self, key, data):
-        """ 直接存储一个数据，适合小文件 """
-
     def copy_data(self, from_key, to_key):
         """ 直接存储一个数据，适合小文件 """
 
@@ -155,21 +152,18 @@ class StorageDeviceManager:
             else:
                 self.remove(session['device'], session['key'])
 
-    def put_data(self, name, key, data, mime_type=None, auto_commit=False):
+    def put_data(self, name, key, data, mime_type=None):
         """ 存储数据 """
-        device, cache_device = self.devices[name]
-        device.put_data(key, data)
-        if not auto_commit:
-            self.sessions.new(name, key)
-            self._t_add(name, key)
+        session_id = self.multiput_new(name, key, mime_type=mime_type)
+        self.multiput(name, session_id, data, offset=None)
+        return self.multiput_save(name, session_id)
 
-    def put_stream(self, name, key, stream, mime_type=None, auto_commit=False):
+    def put_stream(self, name, key, stream, mime_type=None):
         """ 存储数据 """
-        device, cache_device = self.devices[name]
-        device.put_stream(key, stream)
-        if not auto_commit:
-            self.sessions.new(name, key)
-            self._t_add(name, key)
+        session_id = self.multiput_new(name, key, mime_type=mime_type)
+        for data in stream:
+            self.multiput(name, session_id, data, offset=None)
+        return self.multiput_save(name, session_id)
 
     def copy_data(self, name, from_key, to_key, auto_commit=False):
         """ 直接存储一个数据，适合小文件 """

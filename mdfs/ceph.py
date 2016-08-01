@@ -53,9 +53,6 @@ class CephDevice(BaseDevice):
     def multiput_delete(self, session_id):
         """ 删除一个写入会话 """
 
-    def put_data(self, key, data):
-        """ 直接存储一个数据，适合小文件 """
-
     def remove(self, key):
         """ 删除key文件 """
 

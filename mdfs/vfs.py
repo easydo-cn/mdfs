@@ -159,23 +159,6 @@ class VfsDevice(BaseDevice):
         OPEN_FILES.close_file(os_path)
         os.remove(os_path)
 
-    def put_data(self, key, data):
-        """ 直接存储一个数据，适合小文件 """
-        os_path = self.os_path(key)
-        self._makedirs(os_path)
-        with open(os_path, 'wb') as fd:
-            fd.write(data)
-
-    def put_stream(self, key, stream, size=-1):
-        """ 流式上传 """
-        os_path = self.os_path(key)
-        self._makedirs(os_path)
-
-        with open(os_path, 'ab') as f:
-            for data in stream:
-                f.write(data)
-            return f.tell()
-
     def remove(self, key):
         """ 删除key文件 """
         ospath = self.os_path(key)
