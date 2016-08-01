@@ -2,22 +2,23 @@
 import os
 from .device import BaseDevice
 import mimetypes
-from .vfs import VfsDevice
 
 class CephDevice(BaseDevice):
     """ ceph device """
 
-    def __init__(self, name, title='', options={}):
+    def __init__(self, name, title='', local_device=None, options={}):
         self.name = name
         self.title = title
-        self.local_device = VfsDevice(options['local_vfs'])
+        self.local_device = local_device
 
     def os_path(self, key):
         """ 找到key在操作系统中的地址 """
-        path = self.local_device.os_path(key)
-        if not os.path.exists(path):
-            pass # download
-        return path
+        os_path = self.local_device.os_path(key)
+        if self.local_device.exists(key):
+            return os_path
+        else:
+            # download to os_path
+            pass
 
     def gen_key(self, prefix='', suffix=''):
         """
@@ -54,10 +55,14 @@ class CephDevice(BaseDevice):
         """ 删除一个写入会话 """
 
     def remove(self, key):
-        """ 删除key文件 """
+        """ 删除key文件，本地缓存也删除 """
 
-    def move(self, key, new_key):
-        """ 升级旧的key，更换为一个新的 """
+    def rmdir(self, key):
+        """ 删除key文件夹"""
+        results = []
+        for device in self.mirror_devices:
+            results.append(device.rmdir(key))
+        return results[0]
 
     def copy_data(self, from_key, to_key):
         """ 复制 """
