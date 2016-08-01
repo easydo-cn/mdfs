@@ -12,6 +12,7 @@ try:
     from types import UnicodeType
 except ImportError:
     UnicodeType = None
+from mdfs import errors
 
 FS_CHARSET = sys.getfilesystemencoding()
 OPEN_FILE_TIMEOUT = 60 * 10
@@ -178,7 +179,10 @@ class VfsDevice(BaseDevice):
     def remove(self, key):
         """ 删除key文件 """
         ospath = self.os_path(key)
-        os.remove(ospath)
+        try:
+            os.remove(ospath)
+        except Exception as e:
+            raise errors.FileNotFound( str(e) )
 
     def rmdir(self, key):
         """ 删除key文件夹"""
