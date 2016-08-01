@@ -12,7 +12,7 @@ try:
     from types import UnicodeType
 except ImportError:
     UnicodeType = None
-import errors
+from mdfs import errors
 
 FS_CHARSET = sys.getfilesystemencoding()
 OPEN_FILE_TIMEOUT = 60 * 10
