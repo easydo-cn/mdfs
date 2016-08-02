@@ -107,7 +107,7 @@ class VfsDevice(BaseDevice):
         :return: 设备唯一的key
         """
         key = uuid.uuid4().hex
-        key = '/'.join((key[:2], key[2:5], key[5:]))
+        key = '/'.join((key[0], key[1], key[2], key[3:]))
         return prefix + key + suffix
 
     def exists(self, key):
