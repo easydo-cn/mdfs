@@ -10,14 +10,14 @@ from mdfs.vfs import VfsDevice
 class AliyunTestCase(unittest.TestCase):
     def setUp(self):
         vfs_device = VfsDevice(name="vfs_test_one", title="vfs_test", root_path="C:\\testvfs")
-        options = {
-            'access_key_id': '3vN0eE9VgjAgKafY',
-            'access_key_secret': 'lqDKfBQHrq0ovgVB49ICMk1KEselUz',
-            'endpoint' : 'oss-cn-qingdao.aliyuncs.com',
-            'bucket_name': 'edotest'
-        }
         self.key = 'ff/.frs/aa.doc/archived/19.txt'
-        self.aliyun_device = AliyunDevice('aliyun_test_one', title='aliyun_test', local_device=vfs_device, options=options)
+        self.aliyun_device = AliyunDevice('aliyun_test_one',
+                                          title='aliyun_test', 
+                                          local_device=vfs_device,
+                                          access_key_id='3vN0eE9VgjAgKafY',
+                                          access_key_secret='lqDKfBQHrq0ovgVB49ICMk1KEselUz',
+                                          endpoint='oss-cn-qingdao.aliyuncs.com',
+                                          bucket_name='edotest')
 
     def tearDown(self):
         pass
