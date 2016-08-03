@@ -21,13 +21,14 @@ BUFFER_SIZE = 400 * 1024
 class AliyunDevice(BaseDevice):
     """aliyun device """
 
-    def __init__(self, name, title='', local_device=None, options={}):
+    def __init__(self, name, title='', local_device=None, access_key_id ='',
+                 access_key_secret='', endpoint='', bucket_name='', options={}):
         self.name = name
         self.title = title
-        self.local_device = local_device
         self.options = options
-        auth = oss2.Auth(options['access_key_id'], options['access_key_secret'])
-        self.bucket = oss2.Bucket(auth, options['endpoint'], options['bucket_name'])
+        self.local_device = local_device
+        auth = oss2.Auth(access_key_id, access_key_secret)
+        self.bucket = oss2.Bucket(auth, endpoint, bucket_name)
 
     def os_path(self, key):
         """找到key在操作系统中的地址 """
@@ -119,6 +120,7 @@ class AliyunDevice(BaseDevice):
             raise Exception("File Size Check Failed")
         self.bucket.complete_multipart_upload(key, upload_id, upload_session.get('parts'))
         UPLOAD_SESSIONS.pop(session_id)
+        return key
 
     def multiput_delete(self, session_id):
         """ 删除一个上传会话 """
