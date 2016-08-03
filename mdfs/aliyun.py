@@ -10,8 +10,9 @@ from oss2.models import PartInfo
 
 from device import BaseDevice
 
-UPLOAD_DETAIL = []
-PART_SIZE = 4 * 1024
+UPLOAD_SESSIONS = {}
+PART_SIZE = 400 * 1024
+BUFFER_SIZE = 400 * 1024
 
 
 class AliyunDevice(BaseDevice):
@@ -36,9 +37,23 @@ class AliyunDevice(BaseDevice):
             size = self.bucket.head_object(key).content_length
             offset = 0
             while offset < size:
-                self.local_device.multiput(session_id, self.get_data(key, offset, size))
-                offset += 100
+                self.local_device.multiput(session_id, self.get_data(key, offset, PART_SIZE))
+                offset += PART_SIZE
             return self.local_device.multiput_save(session_id)
+
+    def _get_upload_session(self, session_id):
+        if not UPLOAD_SESSIONS.has_key(session_id):
+            upload_id, key, size = session_id.rsplit(':', 2)
+            parts = self.bucket.list_parts(key, upload_id).parts
+            part_number = len('parts') + 1
+            offset = 0
+            for part in parts:
+                offset += part.size
+            UPLOAD_SESSIONS[session_id] = {
+                'parts': parts, 'part_number': part_number,
+                'offset': offset, 'buffer': ''
+            }
+        return UPLOAD_SESSIONS[session_id]
 
     def gen_key(self, prefix='', suffix=''):
         """
@@ -59,7 +74,7 @@ class AliyunDevice(BaseDevice):
         if self.local_device.exists(key):
             return self.local_device.get_data(key, offset=offset, size=size)
         else:
-            data = self.bucket.get_object(self.os_path(key), byte_range=(offset, offset+100))
+            data = self.bucket.get_object(self.os_path(key), byte_range=(offset, offset + size))
             return data
 
     def multiput_new(self, key, size=-1):
@@ -68,70 +83,59 @@ class AliyunDevice(BaseDevice):
        从服务端获取所有执行中的断点续传事件
        参考网址: https://help.aliyun.com/document_detail/31997.html?spm=5176.doc31850.2.8.Ew9mpc
        """
-        multipart_uploads = self.bucket.list_multipart_uploads()
         upload_detail = {
-            'upload_id': None,
             'parts': [],
             'offset': 0,
             'part_number': 1,
-            'session_id': ''
+            'buffer': ''
         }
-        session = ':'.join([key, str(size)])
-        if not self._get_upload_detail(session):
-            for uploads in multipart_uploads.upload_list:
-                if uploads.key == key:
-                    upload_detail['upload_id'] = uploads.upload_id
-                    # 获取对当前key文件的parts列表
-                    upload_detail['parts'] = self.bucket.list_parts(key, upload_detail['upload_id']).parts
-                    upload_detail['part_number'] = len(upload_detail['parts']) + 1
-                    for part in upload_detail['parts']:
-                        upload_detail['offset'] += part.size
-                    break
-            if upload_detail['part_number'] is None:
-                upload_detail['part_number'] = self.bucket.init_multipart_upload(key).upload_id
-            upload_detail['session_id'] = session
-            UPLOAD_DETAIL.append(upload_detail)
-        return session
-
-    @staticmethod
-    def _get_upload_detail(session_id):
-        for upload_detail in UPLOAD_DETAIL:
-            if upload_detail.get('session_id') == session_id:
-                return upload_detail
+        session_id = ':'.join([self.bucket.init_multipart_upload(key).upload_id, key, str(size)])
+        UPLOAD_SESSIONS[session_id] = {'parts': [], 'offset': 0, 'part_number': 1, 'buffer': ''}
+        return session_id
 
     def multiput_offset(self, session_id):
         """ 某个文件当前上传位置 """
-        return self._get_upload_detail(session_id).get('offset')
+        upload_id, key, size = session_id.rsplit(':', 2)
+        if not UPLOAD_SESSIONS.has_key(session_id):
+            UPLOAD_SESSIONS[upload_id] = self._get_upload_session(key, upload_id)
+        return UPLOAD_SESSIONS[session_id].get('offset')
 
     def multiput(self, session_id, data, offset=None):
         """ 从offset处写入数据 """
-        os_path, size = session_id.rsplit(':', 1)
-        upload_detail = self._get_upload_detail(session_id)
-        if upload_detail and upload_detail.get('offset') < int(size):
-            num_to_upload = min(PART_SIZE, int(size) - upload_detail.get('offset'))
-            result = self.bucket.upload_part(os_path, upload_detail.get('upload_id'),
-                                             upload_detail.get('part_number'), data)
-            upload_detail['offset'] += num_to_upload
-            upload_detail['part_number'] += 1
-        return upload_detail.get('offset')
+        upload_id, key, size = session_id.rsplit(':', 2)
+        upload_session = self._get_upload_session(session_id)
+        buffer_data = self._get_buffer_data(upload_session, data, size)
+        if buffer_data is not None:
+            if upload_session.get('offset') < int(size):
+                num_to_upload = min(PART_SIZE, int(size) - upload_session.get('offset'))
+                result = self.bucket.upload_part(key,
+                                                 upload_id,
+                                                 upload_session.get('part_number'),
+                                                 buffer_data
+                                                 )
+                upload_session['parts'].append(PartInfo(upload_session['part_number'], result.etag))
+                
+                upload_session['offset'] += num_to_upload
+                upload_session['part_number'] += 1
+        return upload_session.get('offset')
 
     def multiput_save(self, session_id):
         """ 某个文件当前上传位置 """
-        os_path, size = session_id.rsplit(':', 1)
-        upload_detail = self._get_upload_detail(session_id)
-        if int(size) != '-1' and upload_detail.get('offset') != int(size):
+        upload_id, key, size = session_id.rsplit(':', 2)
+        upload_session = self._get_upload_session(session_id)
+        if int(size) != '-1' and upload_session.get('offset') != int(size):
             raise Exception("File Size Check Failed")
 
-        self.bucket.complete_multipart_upload(os_path, upload_detail.get('upload_id'), upload_detail.get('parts'))
-        UPLOAD_DETAIL.remove(upload_detail)
-        return os_path
+        self.bucket.complete_multipart_upload(key, upload_id, upload_session.get('parts'))
+        UPLOAD_SESSIONS.pop(session_id)
+        return upload_id
 
     def multiput_delete(self, session_id):
         """ 删除一个写入会话 """
-        os_path, size = session_id.rsplit(':', 1)
-        upload_detail = self._get_upload_detail(session_id)
-        self.bucket.abort_multipart_upload(os_path, upload_detail.get('upload_id'))
-        UPLOAD_DETAIL.remove(upload_detail)
+        upload_id, size = session_id.rsplit(':', 1)
+        upload_session = self._get_upload_session(session_id)
+        self.bucket.abort_multipart_upload(upload_id, upload_session.get('upload_id'))
+        UPLOAD_SESSIONS.pop(session_id)
 
     def remove(self, key):
         """ 删除key文件，本地缓存也删除 """
@@ -177,3 +181,14 @@ class AliyunDevice(BaseDevice):
             "mime_type": mimetypes.guess_type(key)[0],
             "put_time": os.path.getctime(os_path)
         }
+
+    def _get_buffer_data(self, upload_session, data, size):
+        upload_session['buffer'] += data
+        if len(upload_session['buffer']) >= BUFFER_SIZE:
+            buffer_data = upload_session['buffer'][:BUFFER_SIZE]
+            upload_session['buffer'] = upload_session['buffer'][BUFFER_SIZE:]
+            return buffer_data
+        elif len(upload_session['buffer']) >= size:
+            return upload_session['buffer']
+        else:
+            return None

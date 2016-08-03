@@ -6,6 +6,7 @@ import unittest
 from mdfs.aliyun import  AliyunDevice
 from mdfs.vfs import VfsDevice
 
+session_id = ""
 
 class AliyunTestCase(unittest.TestCase):
     def setUp(self):
@@ -16,40 +17,34 @@ class AliyunTestCase(unittest.TestCase):
             'endpoint' : 'oss-cn-qingdao.aliyuncs.com',
             'bucket_name': 'edotest'
         }
-        self.key = 'ff/.frs/aa.doc/archived/15.txt'
+        self.key = 'ff/.frs/aa.doc/archived/19.txt'
         self.aliyun_device = AliyunDevice('aliyun_test_one', title='aliyun_test', local_device=vfs_device, options=options)
-        self.sessions = self.aliyun_device.multiput_new(self.key, 42)
+        global session_id
+        if session_id is "":
+            session_id = self.aliyun_device.multiput_new(self.key, 400*1024)
+        self.sessions = session_id
+
 
     def tearDown(self):
         pass
-
-    def test_1_os_path(self):
-        ospath = self.aliyun_device.os_path(self.key)
-        self.assertIsInstance(ospath, str)
+    #
+    # def test_1_os_path(self):
+    #     ospath = self.aliyun_device.os_path(self.key)
+    #     self.assertIsInstance(ospath, str)
 
     def test_2_exists(self):
         self.assertTrue(
             self.aliyun_device.exists(self.key)
         )
 
-    def test_3_multiput_new(self):
-        self.assertIsInstance(self.sessions, str)
+    def test_23_upload(self):
+        local_session_id = self.aliyun_device.multiput_new(self.key, 400*1024)
+        offset = 0
+        while offset < 400*1024:
+            offset = self.aliyun_device.multiput(local_session_id, "a"*400*1024, offset)
 
-    def test_4_multiput(self):
-        next_position = self.aliyun_device.multiput(self.sessions, "this is a test")
-        self.assertIsInstance(next_position, int)
-
-    def test_5_multiput_offset(self):
-        self.assertIsInstance(
-            self.aliyun_device.multiput_offset(self.sessions),
-            int
-        )
-
-    def test_6_multiput_save(self):
-        path = self.aliyun_device.multiput_save(self.sessions)
-        self.assertTrue(
-            self.aliyun_device.exists(self.sessions.rsplit(":")[0])
-        )
+        self.aliyun_device.multiput_save(local_session_id)
+        self.assertTrue(self.aliyun_device.exists(self.key))
 
     def test_7_copy_data(self):
         to_key = 'ff/.frs/aa.doc/archived/abcd.txt'
@@ -64,10 +59,6 @@ class AliyunTestCase(unittest.TestCase):
         if self.aliyun_device.exists(self.key):
             self.aliyun_device.rmdir(self.key)
         self.assertFalse(os.path.exists(self.aliyun_device.local_device.os_path(self.key)))
-
-    def test_10_multiput_delete(self):
-        path = self.aliyun_device.multiput_delete(self.sessions)
-        self.assertIsNone(path)
 
 
 if __name__ == '__main__':
