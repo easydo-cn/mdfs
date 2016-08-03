@@ -156,7 +156,6 @@ class VfsDevice(BaseDevice):
     
         if size != '-1' and int(size) != os.path.getsize(os_path):
             raise Exception('File Size Check Failed')
-        return os_path[len(self.root_path)+1:].replace('\\', '/')
 
     def multiput_delete(self, session_id):
         """ 删除一个写入会话 """
