@@ -63,7 +63,7 @@ class AliyunTestCase(unittest.TestCase):
     def test_9_rmdir(self):
         if self.aliyun_device.exists(self.key):
             self.aliyun_device.rmdir(self.key)
-        self.assertTrue(os.path.exists(self.aliyun_device.local_device.os_path(self.key)))
+        self.assertFalse(os.path.exists(self.aliyun_device.local_device.os_path(self.key)))
 
     def test_10_multiput_delete(self):
         path = self.aliyun_device.multiput_delete(self.sessions)

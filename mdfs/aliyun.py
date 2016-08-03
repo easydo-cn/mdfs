@@ -6,6 +6,7 @@ import mimetypes
 
 import oss2
 from oss2 import determine_part_size
+from oss2.models import PartInfo
 
 from device import BaseDevice
 
@@ -144,7 +145,28 @@ class AliyunDevice(BaseDevice):
 
     def copy_data(self, from_key, to_key):
         """复制文件"""
-        self.bucket.copy_object(self.options['bucket_name'], from_key, to_key)
+        total_size = self.bucket.head_object(from_key).content_length
+        part_size = determine_part_size(total_size, preferred_size=100 * 1024)
+
+        # 初始化分片
+        upload_id = self.bucket.init_multipart_upload(to_key).upload_id
+        parts = []
+
+        # 逐个分片拷贝
+        part_number = 1
+        offset = 0
+        while offset < total_size:
+            num_to_upload = min(part_size, total_size - offset)
+            byte_range = (offset, offset + num_to_upload - 1)
+
+            result = self.bucket.upload_part_copy(self.bucket.bucket_name, from_key
+                                                  , byte_range, to_key, upload_id, part_number)
+            parts.append(PartInfo(part_number, result.etag))
+            offset += num_to_upload
+            part_number += 1
+
+        # 完成分片上传
+        self.bucket.complete_multipart_upload(to_key, upload_id, parts)
 
     def stat(self, key):
         """ 得到状态 """
