@@ -33,11 +33,11 @@ class AliyunTestCase(unittest.TestCase):
         )
 
     def test_3_multiput_new(self):
-        self.assertIsInstance(self.sessions, dict)
+        self.assertIsInstance(self.sessions, str)
 
     def test_4_multiput(self):
         next_position = self.aliyun_device.multiput(self.sessions, "this is a test")
-        self.assertIsNone(next_position)
+        self.assertIsInstance(next_position, int)
 
     def test_5_multiput_offset(self):
         self.assertIsInstance(
@@ -47,7 +47,9 @@ class AliyunTestCase(unittest.TestCase):
 
     def test_6_multiput_save(self):
         path = self.aliyun_device.multiput_save(self.sessions)
-        self.assertIsInstance(path, str, "the path is %s" % path)
+        self.assertTrue(
+            self.aliyun_device.exists(self.sessions.rsplit(":")[0])
+        )
 
     def test_7_copy_data(self):
         to_key = 'ff/.frs/aa.doc/archived/abcd.txt'
@@ -56,16 +58,16 @@ class AliyunTestCase(unittest.TestCase):
 
     def test_8_remote(self):
         self.aliyun_device.remove(self.key)
-        self.assertTrue(self.aliyun_device.exists(self.key))
+        self.assertFalse(self.aliyun_device.exists(self.key))
 
-    # def test_9_rmdir(self):
-    #     if self.aliyun_device.exists(self.key):
-    #         self.aliyun_device.rmdir(self.key)
-    #     self.assertTrue(os.path.exists(self.aliyun_device.local_device.os_path(self.key)))
-    #
-    # def test_10_multiput_delete(self):
-    #     path = self.aliyun_device.multiput_delete(self.sessions)
-    #     self.assertIsNone(path)
+    def test_9_rmdir(self):
+        if self.aliyun_device.exists(self.key):
+            self.aliyun_device.rmdir(self.key)
+        self.assertTrue(os.path.exists(self.aliyun_device.local_device.os_path(self.key)))
+
+    def test_10_multiput_delete(self):
+        path = self.aliyun_device.multiput_delete(self.sessions)
+        self.assertIsNone(path)
 
 
 if __name__ == '__main__':
