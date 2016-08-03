@@ -32,7 +32,7 @@ class AliyunDevice(BaseDevice):
         if self.local_device.exists(key):
             return os_path
         else:
-            # download to os_path
+            # 分段下载到本地Cache
             session_id = self.local_device.multiput_new(key)
             size = self.bucket.head_object(key).content_length
             offset = 0
@@ -42,6 +42,7 @@ class AliyunDevice(BaseDevice):
             return self.local_device.multiput_save(session_id)
 
     def _get_upload_session(self, session_id):
+        """获取upload_session"""
         if not UPLOAD_SESSIONS.has_key(session_id):
             upload_id, key, size = session_id.rsplit(':', 2)
             parts = self.bucket.list_parts(key, upload_id).parts
@@ -71,18 +72,13 @@ class AliyunDevice(BaseDevice):
 
     def get_data(self, key, offset=0, size=-1):
         """ 根据key返回文件内容，适合小文件 """
-        if self.local_device.exists(key):
-            return self.local_device.get_data(key, offset=offset, size=size)
-        else:
-            data = self.bucket.get_object(self.os_path(key), byte_range=(offset, offset + size))
-            return data
+        # if self.local_device.exists(key):
+        #     return self.local_device.get_data(key, offset=offset, size=size)
+        data = self.bucket.get_object(key, byte_range=(offset, offset + size)).read()
+        return data
 
     def multiput_new(self, key, size=-1):
-        """
-        开始一个多次写入会话, 返回会话ID"
-       从服务端获取所有执行中的断点续传事件
-       参考网址: https://help.aliyun.com/document_detail/31997.html?spm=5176.doc31850.2.8.Ew9mpc
-       """
+        """开始一个多次写入会话, 返回会话ID"""
         session_id = ':'.join([self.bucket.init_multipart_upload(key).upload_id, key, str(size)])
         UPLOAD_SESSIONS[session_id] = {'parts': [], 'offset': 0, 'part_number': 1, 'buffer': ''}
         return session_id
@@ -177,6 +173,7 @@ class AliyunDevice(BaseDevice):
         }
 
     def _get_buffer_data(self, upload_session, data, size):
+        """进行数据累积 累积长度为BUFFER_SIZE"""
         upload_session['buffer'] += data
         if len(upload_session['buffer']) >= BUFFER_SIZE:
             buffer_data = upload_session['buffer'][:BUFFER_SIZE]
