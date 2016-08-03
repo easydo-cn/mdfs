@@ -51,9 +51,9 @@ class AliyunTestCase(unittest.TestCase):
         self.assertFalse(self.aliyun_device.exists(self.key))
 
     def test_6_rmdir(self):
-        if self.aliyun_device.exists(self.key):
-            self.aliyun_device.rmdir(self.key)
-        self.assertFalse(os.path.exists(self.aliyun_device.local_device.os_path(self.key)))
+        key = 'ff/.frs/aa.doc/archived/'
+        self.aliyun_device.rmdir(key)
+        self.assertFalse(self.aliyun_device.exists(key))
 
 if __name__ == '__main__':
     unittest.main()
