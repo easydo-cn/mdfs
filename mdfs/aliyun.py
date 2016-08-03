@@ -83,12 +83,6 @@ class AliyunDevice(BaseDevice):
        从服务端获取所有执行中的断点续传事件
        参考网址: https://help.aliyun.com/document_detail/31997.html?spm=5176.doc31850.2.8.Ew9mpc
        """
-        upload_detail = {
-            'parts': [],
-            'offset': 0,
-            'part_number': 1,
-            'buffer': ''
-        }
         session_id = ':'.join([self.bucket.init_multipart_upload(key).upload_id, key, str(size)])
         UPLOAD_SESSIONS[session_id] = {'parts': [], 'offset': 0, 'part_number': 1, 'buffer': ''}
         return session_id
@@ -97,7 +91,7 @@ class AliyunDevice(BaseDevice):
         """ 某个文件当前上传位置 """
         upload_id, key, size = session_id.rsplit(':', 2)
         if not UPLOAD_SESSIONS.has_key(session_id):
-            UPLOAD_SESSIONS[upload_id] = self._get_upload_session(key, upload_id)
+            UPLOAD_SESSIONS[upload_id] = self._get_upload_session(session_id)
         return UPLOAD_SESSIONS[session_id].get('offset')
 
     def multiput(self, session_id, data, offset=None):
@@ -114,7 +108,7 @@ class AliyunDevice(BaseDevice):
                                                  buffer_data
                                                  )
                 upload_session['parts'].append(PartInfo(upload_session['part_number'], result.etag))
-                
+
                 upload_session['offset'] += num_to_upload
                 upload_session['part_number'] += 1
         return upload_session.get('offset')

@@ -27,17 +27,15 @@ class AliyunTestCase(unittest.TestCase):
 
     def tearDown(self):
         pass
-    #
-    # def test_1_os_path(self):
-    #     ospath = self.aliyun_device.os_path(self.key)
-    #     self.assertIsInstance(ospath, str)
+
+
 
     def test_2_exists(self):
         self.assertTrue(
             self.aliyun_device.exists(self.key)
         )
 
-    def test_23_upload(self):
+    def test_3_upload(self):
         local_session_id = self.aliyun_device.multiput_new(self.key, 400*1024)
         offset = 0
         while offset < 400*1024:
@@ -45,6 +43,10 @@ class AliyunTestCase(unittest.TestCase):
 
         self.aliyun_device.multiput_save(local_session_id)
         self.assertTrue(self.aliyun_device.exists(self.key))
+
+    def test_4_os_path(self):
+        ospath = self.aliyun_device.os_path(self.key)
+        self.assertIsInstance(ospath, str)
 
     def test_7_copy_data(self):
         to_key = 'ff/.frs/aa.doc/archived/abcd.txt'
