@@ -29,9 +29,7 @@ class AliyunDevice(BaseDevice):
     def os_path(self, key):
         """找到key在操作系统中的地址 """
         os_path = self.local_device.os_path(key)
-        if self.local_device.exists(key):
-            return os_path
-        else:
+        if not self.local_device.exists(key):
             # 分段下载到本地Cache
             session_id = self.local_device.multiput_new(key)
             size = self.bucket.head_object(key).content_length
@@ -39,7 +37,8 @@ class AliyunDevice(BaseDevice):
             while offset < size:
                 self.local_device.multiput(session_id, self.get_data(key, offset, PART_SIZE))
                 offset += PART_SIZE
-            return self.local_device.multiput_save(session_id)
+            self.local_device.multiput_save(session_id)
+        return os_path
 
     def _get_upload_session(self, session_id):
         """获取upload_session"""
@@ -72,8 +71,6 @@ class AliyunDevice(BaseDevice):
 
     def get_data(self, key, offset=0, size=-1):
         """ 根据key返回文件内容，适合小文件 """
-        # if self.local_device.exists(key):
-        #     return self.local_device.get_data(key, offset=offset, size=size)
         data = self.bucket.get_object(key, byte_range=(offset, offset + size)).read()
         return data
 
@@ -97,7 +94,6 @@ class AliyunDevice(BaseDevice):
         buffer_data = self._get_buffer_data(upload_session, data, size)
         if buffer_data is not None:
             if upload_session.get('offset') < int(size):
-                num_to_upload = min(PART_SIZE, int(size) - upload_session.get('offset'))
                 result = self.bucket.upload_part(key,
                                                  upload_id,
                                                  upload_session.get('part_number'),
@@ -105,7 +101,7 @@ class AliyunDevice(BaseDevice):
                                                  )
                 upload_session['parts'].append(PartInfo(upload_session['part_number'], result.etag))
 
-                upload_session['offset'] += num_to_upload
+                upload_session['offset'] += len(buffer_data)
                 upload_session['part_number'] += 1
         return upload_session.get('offset')
 
@@ -118,13 +114,12 @@ class AliyunDevice(BaseDevice):
 
         self.bucket.complete_multipart_upload(key, upload_id, upload_session.get('parts'))
         UPLOAD_SESSIONS.pop(session_id)
-        return upload_id
 
     def multiput_delete(self, session_id):
         """ 删除一个写入会话 """
-        upload_id, size = session_id.rsplit(':', 1)
+        upload_id, key, size = session_id.rsplit(':', 2)
         upload_session = self._get_upload_session(session_id)
-        self.bucket.abort_multipart_upload(upload_id, upload_session.get('upload_id'))
+        self.bucket.abort_multipart_upload(key, upload_id)
         UPLOAD_SESSIONS.pop(session_id)
 
     def remove(self, key):
@@ -176,10 +171,10 @@ class AliyunDevice(BaseDevice):
         """进行数据累积 累积长度为BUFFER_SIZE"""
         upload_session['buffer'] += data
         if len(upload_session['buffer']) >= BUFFER_SIZE:
-            buffer_data = upload_session['buffer'][:BUFFER_SIZE]
-            upload_session['buffer'] = upload_session['buffer'][BUFFER_SIZE:]
+            buffer_data = upload_session['buffer']
+            upload_session['buffer'] = ''
             return buffer_data
-        elif len(upload_session['buffer']) >= size:
+        elif upload_session['offset'] + len(upload_session['buffer']) >= size:
             return upload_session['buffer']
         else:
             return None
