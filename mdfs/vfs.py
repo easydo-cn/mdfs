@@ -123,7 +123,12 @@ class VfsDevice(BaseDevice):
         """ 根据key返回文件内容，适合小文件 """
         path = self.os_path(key)
         with open(path, 'rb') as f:
-            return f.read()
+            if offset: 
+                f.seek(offset)
+            if size != -1:
+                return f.read(size)
+            else:
+                return f.read()
 
     def multiput_new(self, key, size=-1):
         """ 开始一个多次写入会话, 返回会话ID"""
@@ -133,7 +138,7 @@ class VfsDevice(BaseDevice):
         OPEN_FILES.clean()  # 关闭全部超时不用的文件
         OPEN_FILES.new_file(os_path)
         return session
-    
+
     def multiput_offset(self, session_id):
         """ 某个文件当前上传位置 """
         os_path = session_id.rsplit(':', 1)[0]
