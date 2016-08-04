@@ -12,7 +12,7 @@ class AliyunTestCase(unittest.TestCase):
         vfs_device = VfsDevice(name="vfs_test_one", title="vfs_test", root_path="C:\\testvfs")
         self.key = 'ff/.frs/aa.doc/archived/19.txt'
         self.aliyun_device = AliyunDevice('aliyun_test_one',
-                                          title='aliyun_test', 
+                                          title='aliyun_test',
                                           local_device=vfs_device,
                                           access_key_id='3vN0eE9VgjAgKafY',
                                           access_key_secret='lqDKfBQHrq0ovgVB49ICMk1KEselUz',
