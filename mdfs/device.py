@@ -5,6 +5,7 @@ import json
 import time
 import threading
 from os.path import expanduser
+from mdfs import errors
 
 _local = threading.local()
 
@@ -143,7 +144,10 @@ class StorageDeviceManager:
         for session in self.sessions.query(expire=expire):
             self.sessions.delete(session['device'], session['key'])
             if session.get('session_id'):
-                self.multiput_delete(session['device'], session['session_id'])
+                try:
+                    self.multiput_delete(session['device'], session['session_id'])
+                except errors.FileNotFound:
+                    pass
             else:
                 self.remove(session['device'], session['key'])
 
