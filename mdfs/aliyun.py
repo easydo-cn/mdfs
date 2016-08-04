@@ -10,28 +10,35 @@ from oss2.models import PartInfo
 
 from device import BaseDevice
 
+# 存储每个文件上传的会话信息
 UPLOAD_SESSIONS = {}
-PART_SIZE = 400 * 1024
+# 下载数据块的大小
+PART_SIZE = 2* 1024 * 1024
+# 上传数据块的大小
 BUFFER_SIZE = 400 * 1024
 
 
 class AliyunDevice(BaseDevice):
-    """aliyun deveice """
+    """aliyun device """
 
-    def __init__(self, name, title='', local_device=None, options={}):
+    def __init__(self, name, title='', local_device=None, access_key_id ='',
+                 access_key_secret='', endpoint='', bucket_name='', options={}):
         self.name = name
         self.title = title
-        self.local_device = local_device
         self.options = options
-        auth = oss2.Auth(options['access_key_id'], options['access_key_secret'])
-        self.bucket = oss2.Bucket(auth, options['endpoint'], options['bucket_name'])
+        self.local_device = local_device
+        auth = oss2.Auth(access_key_id, access_key_secret)
+        self.bucket = oss2.Bucket(auth, endpoint, bucket_name)
 
     def os_path(self, key):
         """找到key在操作系统中的地址 """
         os_path = self.local_device.os_path(key)
         if not self.local_device.exists(key):
             # 分段下载到本地Cache
+            if not self.exists(key):
+                raise Exception("File Not Found")
             session_id = self.local_device.multiput_new(key)
+            # 获取下载文件的总大小
             size = self.bucket.head_object(key).content_length
             offset = 0
             while offset < size:
@@ -75,7 +82,7 @@ class AliyunDevice(BaseDevice):
         return data
 
     def multiput_new(self, key, size=-1):
-        """开始一个多次写入会话, 返回会话ID"""
+        """开始一个多次上传会话, 返回会话ID"""
         session_id = ':'.join([self.bucket.init_multipart_upload(key).upload_id, key, str(size)])
         UPLOAD_SESSIONS[session_id] = {'parts': [], 'offset': 0, 'part_number': 1, 'buffer': ''}
         return session_id
@@ -88,7 +95,7 @@ class AliyunDevice(BaseDevice):
         return UPLOAD_SESSIONS[session_id].get('offset')
 
     def multiput(self, session_id, data, offset=None):
-        """ 从offset处写入数据 """
+        """ 从offset处上传数据 """
         upload_id, key, size = session_id.rsplit(':', 2)
         upload_session = self._get_upload_session(session_id)
         buffer_data = self._get_buffer_data(upload_session, data, size)
@@ -106,17 +113,17 @@ class AliyunDevice(BaseDevice):
         return upload_session.get('offset')
 
     def multiput_save(self, session_id):
-        """ 某个文件当前上传位置 """
+        """ 某个上传会话当前上传位置 """
         upload_id, key, size = session_id.rsplit(':', 2)
         upload_session = self._get_upload_session(session_id)
         if int(size) != '-1' and upload_session.get('offset') != int(size):
             raise Exception("File Size Check Failed")
-
         self.bucket.complete_multipart_upload(key, upload_id, upload_session.get('parts'))
         UPLOAD_SESSIONS.pop(session_id)
+        return key
 
     def multiput_delete(self, session_id):
-        """ 删除一个写入会话 """
+        """ 删除一个上传会话 """
         upload_id, key, size = session_id.rsplit(':', 2)
         upload_session = self._get_upload_session(session_id)
         self.bucket.abort_multipart_upload(key, upload_id)
@@ -129,8 +136,11 @@ class AliyunDevice(BaseDevice):
         self.bucket.delete_object(key)
 
     def rmdir(self, key):
-        """ 删除key文件夹"""
-        return self.local_device.rmdir(key)
+        """ 删除前缀为key的云端和本地Cache的文件夹"""
+        remove_file_list = [obj.key for obj in oss2.ObjectIterator(self.bucket, prefix=key)]
+        self.bucket.batch_delete_objects(remove_file_list)
+
+        self.local_device.rmdir(key)
 
     def copy_data(self, from_key, to_key):
         """复制文件"""
@@ -158,13 +168,13 @@ class AliyunDevice(BaseDevice):
         self.bucket.complete_multipart_upload(to_key, upload_id, parts)
 
     def stat(self, key):
-        """ 得到状态 """
-        os_path = self.os_path(key)
+        """ 得到云端文件状态 """
+        head_object = self.bucket.head_object(key)
         return {
-            "file_size": os.path.getsize(os_path),
+            "file_size": head_object.content_length,
             "hash": None,
-            "mime_type": mimetypes.guess_type(key)[0],
-            "put_time": os.path.getctime(os_path)
+            "mime_type": head_object.content_type,
+            "put_time": head_object.last_modified
         }
 
     def _get_buffer_data(self, upload_session, data, size):
