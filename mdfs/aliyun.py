@@ -8,7 +8,7 @@ import oss2
 from oss2 import determine_part_size
 from oss2.models import PartInfo
 
-from device import BaseDevice
+from .device import BaseDevice
 
 # 存储每个文件上传的会话信息
 UPLOAD_SESSIONS = {}
