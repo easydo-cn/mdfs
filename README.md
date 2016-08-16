@@ -27,63 +27,11 @@
 - 根据device_name找到相应的设备
 - 每个设备通过key进行文件的管理
 
-## 接口
+## 已经支持的设备
 
-运营点存储设备管理器
+- vfs：文件系统访问
+- ceph: s3接口
+- aliyun: oss
+- mirror：镜像存储
 
-    sdm = StorageDeviceManager()
-    cache_device = VfsDevice(cache_path)
 
-    vfs_device = VfsDevice(path)
-    vfs_device.set_cache_device(cache_device)
-    sdm.add(vfs_device)
-
-    ceph_device = CephDevice(server, port, token)
-    ceph_device.set_cache_device(cache_device)
-    sdm.add(ceph_device)
-
-    sdm.site_policy  # {site:[devices]}
-    sdm.mime_policy  # {mime:[devices]}
-    devices = sdm.allowed_devices(site_name, mimes)
-    device = sdm.get_device(device_name)
-
-设备文件管理
-
-    print device.title
-    print device.type
-    print device.options
-    print device.mimes
-    print device.instance
-
-    key = device.new_key(site_name)
-
-    device.put_data(key, data)
-    device.put_stream(key, file_obj)
-
-    device.remove(key)
-
-    file_content = device.get_data(key)
-    file_stream = device.get_stream(key)
-
-缓存设备
-
-    cache_device = device.get_cache_device()
-    print cache_device.type
-    print cache_device.options
-
-    cache_key = cache_device.get_cache_key(key, mime, subpath)
-    cach_device.put_data(cache_key, data)
-    cach_device.get_data(cache_key, data)
-
-VFS: 虚拟文件系统
-
-  vfs = VFS(root=path)
-  os_path = vfs.ospath(key)将key映射到实际文件系统路径
-
-- os.path.split统一
-- 历史版本路径映射：
-
-    ff/aa.doc/++versions++/1.doc
-    ff/.frs/aa.doc/archive/1.doc
-
-- CIFS/NFS
